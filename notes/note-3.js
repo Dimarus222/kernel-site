@@ -1,238 +1,283 @@
-// ============ notes/note-3.js — Хэш-функции ============
+// ============ notes/note-3.js — NMAP: МЕГА-КОНСПЕКТ ============
 
 KERNEL_DATA.addNote({
     id: 3,
     section: 'notes',
-    title: 'Хэш-функции: MD5, SHA-256 и почему это не шифрование',
-    desc: 'Полный разбор криптографических хэш-функций: свойства, алгоритмы, лавинный эффект, коллизии, соль, pepper, HMAC и практическое применение.',
-    tags: ['криптография', 'хэш', 'SHA-256', 'MD5', 'теория'],
+    title: 'Nmap: полное руководство по сканированию',
+    desc: 'Типы сканирования, NSE-скрипты, обход IDS/IPS, анализ результатов, автоматизация пентеста.',
+    tags: ['практика', 'сети', 'Nmap', 'сканирование', 'NSE', 'пентест'],
     date: '2026',
     content: function() {
 
         return [
-            // ============ 1. ВВЕДЕНИЕ ============
-            '<h3>Что такое хэш-функция</h3>',
-            '<p><strong>Хэш-функция</strong> — это математический алгоритм, который преобразует входные данные произвольной длины в выходную строку <strong>фиксированной длины</strong>. Эта выходная строка называется <strong>хэшем</strong>, <strong>дайджестом</strong> или <strong>свёрткой</strong>.</p>',
-            '<p>Представьте мясорубку: вы кладёте в неё кусок мяса (входные данные), а на выходе всегда получается фарш (хэш). При этом:</p>',
+            // ============================================================
+            // 1. ВВЕДЕНИЕ В NMAP
+            // ============================================================
+            '<h3>1. Что такое Nmap</h3>',
+            '<p><strong>Nmap (Network Mapper)</strong> — это утилита с открытым исходным кодом для исследования сети и аудита безопасности. Разработана Гордоном Лайоном (Fyodor) и впервые опубликована в 1997 году. Nmap — это швейцарский нож пентестера и сетевого администратора. Он позволяет:</p>',
             '<ul>',
-            '<li>Из фарша невозможно восстановить исходный кусок мяса (необратимость).</li>',
-            '<li>Один и тот же кусок всегда даёт одинаковый фарш (детерминированность).</li>',
-            '<li>Два разных куска никогда не дадут одинаковый фарш (устойчивость к коллизиям).</li>',
-            '<li>Даже крошечное изменение куска полностью меняет фарш (лавинный эффект).</li>',
+            '<li>Обнаруживать активные хосты в сети (host discovery).</li>',
+            '<li>Сканировать порты для определения открытых сервисов (port scanning).</li>',
+            '<li>Определять версии запущенных сервисов и ОС (service/OS detection).</li>',
+            '<li>Запускать скрипты для расширенного анализа (NSE — Nmap Scripting Engine).</li>',
+            '<li>Обходить IDS/IPS и файерволы (фрагментация, decoy, тайминг).</li>',
             '</ul>',
+            '<p><strong>Установка:</strong> Nmap предустановлен в Kali Linux. На других системах: <code>sudo apt install nmap</code> (Ubuntu/Debian) или скачать с <a href="https://nmap.org/download.html" target="_blank">nmap.org</a>.</p>',
 
-            '<h3>Хэширование vs Шифрование — в чём разница</h3>',
-            '<p><strong>Это принципиально разные вещи. Их часто путают, но это грубая ошибка.</strong></p>',
+            '<h3>2. Базовое использование</h3>',
+            '<p>Простейшее сканирование:</p>',
             App.createCodeBlock(
-                '╔═══════════════╦══════════════════════╦══════════════════════╗\n' +
-                '║   Параметр    ║     ХЭШИРОВАНИЕ     ║      ШИФРОВАНИЕ     ║\n' +
-                '╠═══════════════╬══════════════════════╬══════════════════════╣\n' +
-                '║ Обратимость   ║ НЕОБРАТИМО          ║ ОБРАТИМО (есть ключ)║\n' +
-                '║ Ключ          ║ Не используется     ║ Обязателен          ║\n' +
-                '║ Длина выхода  ║ Фиксированная       ║ Равна длине входа   ║\n' +
-                '║ Назначение    ║ Проверка целостности║ Скрытие данных       ║\n' +
-                '║ Пример        ║ SHA-256("hello")    ║ AES("hello", key)   ║\n' +
-                '╚═══════════════╩══════════════════════╩══════════════════════╝',
-                'plaintext'
-            ),
-            '<p><strong>Ключевое отличие:</strong> шифрование можно расшифровать обратно (зная ключ), хэш — нельзя. Пароли хранят в виде хэшей именно поэтому: даже если база утечёт, злоумышленник не узнает исходные пароли.</p>',
-
-            // ============ 2. СВОЙСТВА ============
-            '<h3>Три главных свойства криптографического хэша</h3>',
-            '<p><strong>1. Детерминированность (Deterministic)</strong></p>',
-            '<p>Одинаковый вход ВСЕГДА даёт одинаковый выход. Это позволяет проверять целостность данных: скачали файл, вычислили его хэш, сравнили с эталонным.</p>',
-            App.createCodeBlock(
-                '# Демонстрация детерминированности\n' +
-                'import hashlib\n\n' +
-                'data = "KERNEL project"\n\n' +
-                '# Сколько бы раз мы ни запускали — результат одинаковый\n' +
-                'h1 = hashlib.sha256(data.encode()).hexdigest()\n' +
-                'h2 = hashlib.sha256(data.encode()).hexdigest()\n\n' +
-                'print(h1)  # Всегда один и тот же хэш\n' +
-                'print(h2)  # Полностью совпадает с h1\n' +
-                'print(h1 == h2)  # True',
-                'python'
-            ),
-
-            '<p><strong>2. Лавинный эффект (Avalanche Effect)</strong></p>',
-            '<p>Малейшее изменение входных данных (даже на 1 бит) приводит к <strong>полностью другому</strong> хэшу. Это критически важно для безопасности: злоумышленник не может «подогнать» входные данные под нужный хэш.</p>',
-            App.createCodeBlock(
-                '# Демонстрация лавинного эффекта\n' +
-                'import hashlib\n\n' +
-                '# Два почти одинаковых сообщения\n' +
-                'msg1 = "KERNEL project"\n' +
-                'msg2 = "KERNEL Project"  # Заглавная P вместо строчной\n\n' +
-                'h1 = hashlib.sha256(msg1.encode()).hexdigest()\n' +
-                'h2 = hashlib.sha256(msg2.encode()).hexdigest()\n\n' +
-                'print("Сообщение 1:", msg1)\n' +
-                'print("Хэш 1:      ", h1[:32], "...")\n' +
-                'print()\n' +
-                'print("Сообщение 2:", msg2)\n' +
-                'print("Хэш 2:      ", h2[:32], "...")\n' +
-                'print()\n' +
-                '# Считаем, сколько битов различаются\n' +
-                'diff = bin(int(h1, 16) ^ int(h2, 16)).count("1")\n' +
-                'print(f"Различаются {diff} из 256 битов ({diff*100/256:.0f}%)")\n' +
-                '# Результат: ~128 битов из 256 (50%) — половина хэша изменилась!',
-                'python'
-            ),
-
-            '<p><strong>3. Устойчивость к коллизиям (Collision Resistance)</strong></p>',
-            '<p>Практически невозможно найти два разных входных сообщения, дающих одинаковый хэш. Это свойство нарушается при атаках типа «дней рождения» (birthday attack) на слабые алгоритмы.</p>',
-            '<p><strong>Виды устойчивости:</strong></p>',
-            '<ul>',
-            '<li><strong>Preimage Resistance (стойкость к прообразу):</strong> по известному хэшу H невозможно найти сообщение M, такое что hash(M) = H. Защищает от восстановления пароля по его хэшу.</li>',
-            '<li><strong>Second Preimage Resistance (стойкость ко второму прообразу):</strong> имея сообщение M1 и его хэш, невозможно найти другое сообщение M2 с таким же хэшем. Защищает от подмены файла.</li>',
-            '<li><strong>Collision Resistance (стойкость к коллизиям):</strong> невозможно найти ЛЮБУЮ пару разных сообщений с одинаковым хэшем. Самое сильное свойство.</li>',
-            '</ul>',
-
-            // ============ 3. АЛГОРИТМЫ ============
-            '<h3>Основные хэш-алгоритмы</h3>',
-
-            '<h4>MD5 (Message Digest 5) — ⚠️ Сломан, не использовать</h4>',
-            '<p>Разработан Роном Ривестом в 1991 году. Длина хэша: 128 бит (32 hex-символа). В 2004 году найдены практические коллизии. В 2012 году Flame использовал поддельный MD5-сертификат Microsoft для атаки. <strong>Категорически не рекомендуется для security-применений.</strong></p>',
-            App.createCodeBlock(
-                '# MD5 — только для проверки целостности НЕsecurity данных\n' +
-                'import hashlib\n\n' +
-                'md5_hash = hashlib.md5(b"Hello, World!").hexdigest()\n' +
-                'print(md5_hash)  # 65a8e27d8879283831b664bd8b7f0ad4\n' +
-                '# НИКОГДА не используйте MD5 для паролей или сертификатов!',
-                'python'
-            ),
-
-            '<h4>SHA-1 (Secure Hash Algorithm 1) — ⚠️ Сломан, не использовать</h4>',
-            '<p>Разработан АНБ США в 1995 году. Длина хэша: 160 бит. В 2017 году Google и CWI Amsterdam провели первую практическую коллизию (SHAttered). В 2020 году найдена chosen-prefix collision. <strong>Git всё ещё использует SHA-1, но переходит на SHA-256.</strong></p>',
-
-            '<h4>SHA-2 (SHA-256, SHA-512) — ✅ Актуальный стандарт</h4>',
-            '<p>Разработан АНБ США в 2001 году. Семейство включает:</p>',
-            '<ul>',
-            '<li><strong>SHA-224:</strong> 224 бита (28 байт) — усечённая версия SHA-256.</li>',
-            '<li><strong>SHA-256:</strong> 256 бит (32 байта, 64 hex-символа) — самый популярный. Используется в Bitcoin, TLS, PGP, SSH.</li>',
-            '<li><strong>SHA-384:</strong> 384 бита — усечённая версия SHA-512.</li>',
-            '<li><strong>SHA-512:</strong> 512 бит (64 байта, 128 hex-символов) — для high-security применений.</li>',
-            '</ul>',
-            App.createCodeBlock(
-                '# SHA-256 в Python\n' +
-                'import hashlib\n\n' +
-                'data = b"KERNEL project"\n' +
-                'sha256_hash = hashlib.sha256(data).hexdigest()\n' +
-                'sha512_hash = hashlib.sha512(data).hexdigest()\n\n' +
-                'print("SHA-256:", sha256_hash)  # 64 символа\n' +
-                'print("SHA-512:", sha512_hash)  # 128 символов',
-                'python'
-            ),
-
-            '<h4>SHA-3 (Keccak) — ✅ Новейший стандарт</h4>',
-            '<p>Принят NIST в 2015 году после конкурса. Отличается от SHA-2 внутренней архитектурой («губка» вместо структуры Меркла-Дамгора). Устойчив к length extension attacks.</p>',
-
-            '<h4>ГОСТ Р 34.11-2018 «Стрибог» — Российский стандарт</h4>',
-            '<p>Длина хэша: 256 или 512 бит. Обязателен к применению в государственных ИС России.</p>',
-
-            // ============ 4. ПРИМЕНЕНИЕ ============
-            '<h3>Где применяются хэш-функции</h3>',
-
-            '<h4>1. Хранение паролей</h4>',
-            '<p>Пароли никогда не хранят в открытом виде. Вместо этого хранят хэш пароля + соль. При входе пользователь вводит пароль, система хэширует его с той же солью и сравнивает хэши.</p>',
-            App.createCodeBlock(
-                '# Правильное хэширование пароля с солью\n' +
-                'import hashlib, os\n\n' +
-                'def hash_password(password):\n' +
-                '    # Генерируем случайную соль (16 байт = 128 бит)\n' +
-                '    salt = os.urandom(16)\n' +
-                '    # Хэшируем пароль + соль (100 000 итераций PBKDF2)\n' +
-                '    hashed = hashlib.pbkdf2_hmac(\n' +
-                '        "sha256",\n' +
-                '        password.encode("utf-8"),\n' +
-                '        salt,\n' +
-                '        100000  # Количество итераций\n' +
-                '    )\n' +
-                '    # Сохраняем соль + хэш вместе\n' +
-                '    return salt + hashed\n\n' +
-                'def verify_password(stored, password):\n' +
-                '    salt = stored[:16]  # Первые 16 байт — соль\n' +
-                '    stored_hash = stored[16:]\n' +
-                '    new_hash = hashlib.pbkdf2_hmac(\n' +
-                '        "sha256",\n' +
-                '        password.encode("utf-8"),\n' +
-                '        salt,\n' +
-                '        100000\n' +
-                '    )\n' +
-                '    return new_hash == stored_hash',
-                'python'
-            ),
-
-            '<h4>2. Проверка целостности файлов</h4>',
-            '<p>Скачали ISO-образ Linux? Сравните его SHA-256 с опубликованным на официальном сайте. Хэши расходятся — файл повреждён или подменён.</p>',
-            App.createCodeBlock(
-                '# Проверка целостности файла\n' +
-                'sha256sum ubuntu-24.04.iso\n' +
-                '# Сравнить вывод с https://releases.ubuntu.com/SHA256SUMS',
+                '# Сканирование одного IP\nnmap 192.168.1.1\n\n# Сканирование подсети\nnmap 192.168.1.0/24\n\n# Сканирование диапазона IP\nnmap 192.168.1.1-100\n\n# Сканирование списка хостов\nnmap 192.168.1.1,15,23,45\n\n# Сканирование из файла\nnmap -iL targets.txt',
                 'bash'
             ),
 
-            '<h4>3. Цифровые подписи</h4>',
-            '<p>Подписывается не сам документ (он может быть гигабайтным), а его хэш. Хэш шифруется приватным ключом — получается подпись. Проверка: расшифровать подпись публичным ключом, вычислить хэш документа, сравнить.</p>',
+            // ============================================================
+            // 3. ОБНАРУЖЕНИЕ ХОСТОВ (Host Discovery)
+            // ============================================================
+            '<h3>3. Обнаружение хостов (Host Discovery)</h3>',
+            '<p>Перед сканированием портов Nmap должен определить, какие хосты активны. По умолчанию используются ICMP Echo Request (ping) и TCP SYN на порт 443, но это можно настраивать:</p>',
 
-            '<h4>4. Блокчейн и криптовалюты</h4>',
-            '<p>Bitcoin использует двойной SHA-256 для майнинга (Proof of Work). Каждый блок содержит хэш предыдущего блока — так образуется цепочка.</p>',
-
-            '<h4>5. HMAC (Hash-based Message Authentication Code)</h4>',
-            '<p>HMAC — это хэш с секретным ключом. Используется для аутентификации сообщений: только тот, кто знает ключ, может создать правильный HMAC. Применяется в JWT, API-аутентификации.</p>',
+            '<h4>3.1 Типы ping-сканирований</h4>',
             App.createCodeBlock(
-                '# HMAC-SHA256\n' +
-                'import hmac, hashlib\n\n' +
-                'secret_key = b"supersecret"\n' +
-                'message = b"transfer $100 to Bob"\n\n' +
-                'h = hmac.new(secret_key, message, hashlib.sha256)\n' +
-                'print(h.hexdigest())  # HMAC-подпись сообщения',
-                'python'
+                '# ICMP Echo (стандартный ping)\nnmap -PE 192.168.1.0/24\n\n# ICMP Timestamp Request (обходит некоторые фаерволы)\nnmap -PP 192.168.1.0/24\n\n# ICMP Netmask Request\nnmap -PM 192.168.1.0/24\n\n# TCP SYN ping (на порт 80)\nnmap -PS80 192.168.1.0/24\n\n# TCP ACK ping\nnmap -PA443 192.168.1.0/24\n\n# UDP ping\nnmap -PU53 192.168.1.0/24\n\n# ARP ping (только в локальной сети)\nnmap -PR 192.168.1.0/24\n\n# Комбинированное обнаружение\nnmap -PE -PS80,443 -PA3389 192.168.1.0/24',
+                'bash'
             ),
 
-            // ============ 5. АТАКИ ============
-            '<h3>Атаки на хэш-функции</h3>',
+            '<h4>3.2 Отключение обнаружения (No Ping)</h4>',
+            '<p>Если вы точно знаете, что хост активен, можно пропустить этап обнаружения для ускорения:</p>',
+            App.createCodeBlock(
+                '# Сканировать все указанные хосты как активные\nnmap -Pn 192.168.1.0/24\n\n# Полезно, когда фаервол блокирует ICMP',
+                'bash'
+            ),
 
-            '<h4>1. Полный перебор (Brute Force)</h4>',
-            '<p>Злоумышленник перебирает все возможные входные данные, вычисляя хэш и сравнивая с целевым. Сложность: O(2^n) для идеального хэша, где n — длина хэша в битах. Для SHA-256 это 2^256 — астрономическое число (примерно количество атомов в наблюдаемой Вселенной).</p>',
+            // ============================================================
+            // 4. ТЕХНИКИ СКАНИРОВАНИЯ ПОРТОВ
+            // ============================================================
+            '<h3>4. Техники сканирования портов</h3>',
+            '<p>Это ядро Nmap. Существует более десятка техник сканирования. Выбор техники влияет на скорость, скрытность и точность.</p>',
 
-            '<h4>2. Радужные таблицы (Rainbow Tables)</h4>',
-            '<p>Заранее вычисленная база: пароль → хэш. Позволяет мгновенно найти пароль по хэшу, если пароль есть в таблице. Защита: <strong>соль</strong> (salt) — случайная строка, добавляемая к паролю перед хэшированием. Соль делает предвычисление бесполезным.</p>',
-            '<p><strong>Соль vs Перец (Pepper):</strong></p>',
+            '<h4>4.1 SYN-сканирование (Half-Open, Stealth)</h4>',
+            '<p>Флаг: <code>-sS</code>. Самый популярный и быстрый метод. Nmap отправляет SYN-пакет. Если приходит SYN-ACK — порт открыт, если RST — закрыт, если нет ответа — фильтруется. Nmap не завершает рукопожатие (отправляет RST). Не логируется многими приложениями.</p>',
+            App.createCodeBlock('nmap -sS 192.168.1.1', 'bash'),
+
+            '<h4>4.2 TCP Connect-сканирование</h4>',
+            '<p>Флаг: <code>-sT</code>. Используется, когда SYN-сканирование недоступно (нет raw socket прав). Nmap завершает полное TCP-рукопожатие для каждого порта. Медленнее и заметнее.</p>',
+            App.createCodeBlock('nmap -sT 192.168.1.1', 'bash'),
+
+            '<h4>4.3 UDP-сканирование</h4>',
+            '<p>Флаг: <code>-sU</code>. Сканирует UDP-порты. Работает медленно, так как UDP не имеет подтверждений. Nmap отправляет UDP-пакет, если приходит ICMP Port Unreachable — порт закрыт, если нет ответа — открыт или фильтруется.</p>',
+            App.createCodeBlock('nmap -sU 192.168.1.1', 'bash'),
+
+            '<h4>4.4 FIN, NULL, XMAS-сканирования</h4>',
+            '<p>Основаны на RFC 793: на закрытый порт приходит RST, на открытый — нет ответа. Обходят простые фильтры, но не работают против Windows (отправляет RST всегда).</p>',
+            App.createCodeBlock(
+                '# FIN-сканирование (-sF)\nnmap -sF 192.168.1.1\n\n# NULL-сканирование (нет флагов, -sN)\nnmap -sN 192.168.1.1\n\n# XMAS-сканирование (FIN, PSH, URG, -sX)\nnmap -sX 192.168.1.1',
+                'bash'
+            ),
+
+            '<h4>4.5 Сравнительная таблица техник сканирования</h4>',
+            '<div style="overflow-x: auto;">',
+            '<table style="border-collapse: collapse; width: 100%; font-size: 14px;">',
+            '<tr style="background: #eee;">',
+            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Техника</th>',
+            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Флаг</th>',
+            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Скрытность</th>',
+            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Скорость</th>',
+            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Примечание</th>',
+            '</tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">SYN (Half-Open)</td><td style="border: 1px solid #ccc; padding: 8px;">-sS</td><td style="border: 1px solid #ccc; padding: 8px;">Высокая</td><td style="border: 1px solid #ccc; padding: 8px;">Быстро</td><td style="border: 1px solid #ccc; padding: 8px;">Дефолт, нужны raw socket</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">TCP Connect</td><td style="border: 1px solid #ccc; padding: 8px;">-sT</td><td style="border: 1px solid #ccc; padding: 8px;">Низкая</td><td style="border: 1px solid #ccc; padding: 8px;">Медленно</td><td style="border: 1px solid #ccc; padding: 8px;">Без raw socket</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">UDP</td><td style="border: 1px solid #ccc; padding: 8px;">-sU</td><td style="border: 1px solid #ccc; padding: 8px;">Средняя</td><td style="border: 1px solid #ccc; padding: 8px;">Очень медленно</td><td style="border: 1px solid #ccc; padding: 8px;">Для DNS, SNMP</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">FIN</td><td style="border: 1px solid #ccc; padding: 8px;">-sF</td><td style="border: 1px solid #ccc; padding: 8px;">Высокая</td><td style="border: 1px solid #ccc; padding: 8px;">Средне</td><td style="border: 1px solid #ccc; padding: 8px;">Не работает на Windows</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">NULL</td><td style="border: 1px solid #ccc; padding: 8px;">-sN</td><td style="border: 1px solid #ccc; padding: 8px;">Высокая</td><td style="border: 1px solid #ccc; padding: 8px;">Средне</td><td style="border: 1px solid #ccc; padding: 8px;">Не работает на Windows</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">XMAS</td><td style="border: 1px solid #ccc; padding: 8px;">-sX</td><td style="border: 1px solid #ccc; padding: 8px;">Высокая</td><td style="border: 1px solid #ccc; padding: 8px;">Средне</td><td style="border: 1px solid #ccc; padding: 8px;">Не работает на Windows</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">ACK</td><td style="border: 1px solid #ccc; padding: 8px;">-sA</td><td style="border: 1px solid #ccc; padding: 8px;">Высокая</td><td style="border: 1px solid #ccc; padding: 8px;">Быстро</td><td style="border: 1px solid #ccc; padding: 8px;">Для маппинга файерволов</td></tr>',
+            '</table>',
+            '</div>',
+
+            // ============================================================
+            // 5. ОБНАРУЖЕНИЕ СЕРВИСОВ И ОС
+            // ============================================================
+            '<h3>5. Обнаружение сервисов и ОС</h3>',
+
+            '<h4>5.1 Определение версий сервисов</h4>',
+            '<p>Флаг: <code>-sV</code>. Nmap опрашивает открытые порты и пытается определить, какой сервис и какой версии на них работает. Использует базу сигнатур <code>nmap-service-probes</code>.</p>',
+            App.createCodeBlock(
+                '# Базовое определение версий\nnmap -sV 192.168.1.1\n\n# Интенсивное сканирование (больше запросов, точнее)\nnmap -sV --version-intensity 9 192.168.1.1\n\n# Лёгкое сканирование (быстрее, но менее точно)\nnmap -sV --version-intensity 2 192.168.1.1',
+                'bash'
+            ),
+
+            '<h4>5.2 Определение ОС</h4>',
+            '<p>Флаг: <code>-O</code>. Nmap анализирует ответы хоста (TTL, TCP window size, флаги) и сравнивает с базой сигнатур ОС.</p>',
+            App.createCodeBlock(
+                '# Базовое определение ОС\nnmap -O 192.168.1.1\n\n# Комбинированное определение (ОС + сервисы + скрипты)\nnmap -A 192.168.1.1\n\n# Агрессивное сканирование = -O -sV -sC --traceroute\nnmap -A 192.168.1.1',
+                'bash'
+            ),
+
+            // ============================================================
+            // 6. NSE — NMAP SCRIPTING ENGINE
+            // ============================================================
+            '<h3>6. NSE — Nmap Scripting Engine</h3>',
+            '<p>NSE — это встроенный в Nmap интерпретатор Lua, позволяющий запускать скрипты для автоматизации расширенного анализа. Скрипты находятся в <code>/usr/share/nmap/scripts/</code> и разделены на категории:</p>',
             '<ul>',
-            '<li><strong>Соль (salt):</strong> уникальна для каждого пользователя, хранится в БД рядом с хэшем. Защита от радужных таблиц.</li>',
-            '<li><strong>Перец (pepper):</strong> один на всё приложение, хранится в коде/конфиге, не в БД. Защита при утечке БД.</li>',
+            '<li><strong>safe</strong> — безопасные, не нарушают работу сервиса.</li>',
+            '<li><strong>intrusive</strong> — агрессивные, могут вызвать сбои.</li>',
+            '<li><strong>vuln</strong> — проверка уязвимостей.</li>',
+            '<li><strong>exploit</strong> — эксплуатация уязвимостей.</li>',
+            '<li><strong>auth</strong> — обход аутентификации.</li>',
+            '<li><strong>brute</strong> — брутфорс.</li>',
+            '<li><strong>discovery</strong> — обнаружение сервисов.</li>',
+            '<li><strong>default</strong> — скрипты по умолчанию (<code>-sC</code>).</li>',
             '</ul>',
 
-            '<h4>3. Атака «дней рождения» (Birthday Attack)</h4>',
-            '<p>Парадокс дней рождения: в группе из 23 человек вероятность совпадения дней рождения > 50%. Так же и с хэшами: найти коллизию проще, чем найти прообраз. Для n-битного хэша коллизия находится за ~2^(n/2) операций, а не 2^n.</p>',
-            '<p><strong>Следствие:</strong> эффективная стойкость SHA-256 против коллизий — 128 бит, а не 256. Поэтому для high-security применений используют SHA-512.</p>',
+            '<h4>6.1 Запуск скриптов</h4>',
+            App.createCodeBlock(
+                '# Запуск скриптов по умолчанию (категория default)\nnmap -sC 192.168.1.1\n\n# Запуск конкретного скрипта\nnmap --script http-title 192.168.1.1\n\n# Запуск всех скриптов категории\nnmap --script vuln 192.168.1.1\n\n# Запуск нескольких категорий\nnmap --script "default,safe,vuln" 192.168.1.1\n\n# Запуск с аргументами\nnmap --script http-brute --script-args userdb=users.txt,passdb=passwords.txt 192.168.1.1\n\n# Обновление базы скриптов\nnmap --script-updatedb',
+                'bash'
+            ),
 
-            '<h4>4. Length Extension Attack</h4>',
-            '<p>Атака на хэш-функции с архитектурой Меркла-Дамгора (MD5, SHA-1, SHA-2). Злоумышленник, зная хэш H(message), может вычислить хэш H(message + padding + append), не зная самого message. SHA-3 не подвержен этой атаке. HMAC также защищён.</p>',
+            '<h4>6.2 Основные категории NSE-скриптов</h4>',
+            '<div style="overflow-x: auto;">',
+            '<table style="border-collapse: collapse; width: 100%; font-size: 14px;">',
+            '<tr style="background: #eee;">',
+            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Категория</th>',
+            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Описание</th>',
+            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Примеры скриптов</th>',
+            '</tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">default</td><td style="border: 1px solid #ccc; padding: 8px;">Запускаются с флагом -sC</td><td style="border: 1px solid #ccc; padding: 8px;">http-title, ssh-hostkey</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">vuln</td><td style="border: 1px solid #ccc; padding: 8px;">Проверка уязвимостей</td><td style="border: 1px solid #ccc; padding: 8px;">http-shellshock, ssl-heartbleed, smb-vuln-ms17-010</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">auth</td><td style="border: 1px solid #ccc; padding: 8px;">Обход аутентификации</td><td style="border: 1px solid #ccc; padding: 8px;">http-auth, ftp-anon</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">brute</td><td style="border: 1px solid #ccc; padding: 8px;">Брутфорс-атаки</td><td style="border: 1px solid #ccc; padding: 8px;">http-brute, ssh-brute, ftp-brute</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">discovery</td><td style="border: 1px solid #ccc; padding: 8px;">Обнаружение сервисов</td><td style="border: 1px solid #ccc; padding: 8px;">dns-zone-transfer, smb-enum-shares</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">safe</td><td style="border: 1px solid #ccc; padding: 8px;">Безопасные скрипты</td><td style="border: 1px solid #ccc; padding: 8px;">http-headers, whois-ip</td></tr>',
+            '<tr><td style="border: 1px solid #ccc; padding: 8px;">exploit</td><td style="border: 1px solid #ccc; padding: 8px;">Эксплуатация уязвимостей</td><td style="border: 1px solid #ccc; padding: 8px;">http-shellshock, smb-vuln-ms08-067</td></tr>',
+            '</table>',
+            '</div>',
 
-            // ============ 6. ПРАКТИКА ============
-            '<h3>Практическое задание</h3>',
+            '<h4>6.3 Полезные NSE-скрипты</h4>',
+            App.createCodeBlock(
+                '# Проверка HTTP-заголовков безопасности\nnmap --script http-security-headers -p 80,443 target.com\n\n# Перебор директорий на веб-сервере\nnmap --script http-enum -p 80,443 target.com\n\n# Проверка на Heartbleed (CVE-2014-0160)\nnmap --script ssl-heartbleed -p 443 target.com\n\n# Проверка на Shellshock (CVE-2014-6271)\nnmap --script http-shellshock --script-args uri=/cgi-bin/test.cgi -p 80 target.com\n\n# Получение информации о SMB-сервере\nnmap --script smb-os-discovery,smb-enum-shares -p 445 target.com\n\n# Проверка EternalBlue (MS17-010)\nnmap --script smb-vuln-ms17-010 -p 445 target.com\n\n# Брутфорс SSH\nnmap --script ssh-brute --script-args userdb=users.txt -p 22 target.com',
+                'bash'
+            ),
+
+            // ============================================================
+            // 7. УПРАВЛЕНИЕ СКОРОСТЬЮ И ТАЙМИНГОМ
+            // ============================================================
+            '<h3>7. Управление скоростью и таймингом</h3>',
+
+            '<h4>7.1 Шаблоны тайминга (-T)</h4>',
+            App.createCodeBlock(
+                '# Параноидальный (1 порт/5 мин)\nnmap -T0 192.168.1.1\n\n# Осторожный (1 порт/6 сек)\nnmap -T1 192.168.1.1\n\n# Вежливый (1 порт/0.4 сек)\nnmap -T2 192.168.1.1\n\n# Нормальный (по умолчанию)\nnmap -T3 192.168.1.1\n\n# Агрессивный (сканирует быстро)\nnmap -T4 192.168.1.1\n\n# Безумный (максимальная скорость, возможны потери)\nnmap -T5 192.168.1.1',
+                'bash'
+            ),
+
+            '<h4>7.2 Ручное управление таймингом</h4>',
+            App.createCodeBlock(
+                '# Минимальная задержка между пакетами\nnmap --scan-delay 1s 192.168.1.1\n\n# Максимальное количество параллельных запросов\nnmap --max-parallelism 100 192.168.1.1\n\n# Таймаут ожидания ответа\nnmap --host-timeout 10m 192.168.1.1',
+                'bash'
+            ),
+
+            // ============================================================
+            // 8. ОБХОД IDS/IPS И ФАЕРВОЛОВ
+            // ============================================================
+            '<h3>8. Обход IDS/IPS и фаерволов</h3>',
+
+            '<h4>8.1 Фрагментация пакетов</h4>',
+            '<p>Разбивает TCP-заголовок на несколько пакетов, усложняя детектирование:</p>',
+            App.createCodeBlock(
+                '# Фрагментация на 8 байт\nnmap -f 192.168.1.1\n\n# Фрагментация с указанием MTU\nnmap --mtu 16 192.168.1.1',
+                'bash'
+            ),
+
+            '<h4>8.2 Decoy-сканирование (подставные хосты)</h4>',
+            '<p>Nmap отправляет пакеты от имени нескольких IP-адресов, маскируя реальный сканирующий хост:</p>',
+            App.createCodeBlock(
+                '# Подставные хосты (реальный хост среди них)\nnmap -D RND:10 192.168.1.1\n\n# Явное указание decoy-хостов\nnmap -D 10.0.0.1,10.0.0.2,ME 192.168.1.1',
+                'bash'
+            ),
+
+            '<h4>8.3 Смена source port и MAC-адреса</h4>',
+            App.createCodeBlock(
+                '# Использовать определённый source port\nnmap --source-port 53 192.168.1.1\n\n# Подмена MAC-адреса (только в локальной сети)\nnmap --spoof-mac 00:11:22:33:44:55 192.168.1.1\n\n# Случайный MAC\nnmap --spoof-mac 0 192.168.1.1',
+                'bash'
+            ),
+
+            // ============================================================
+            // 9. ВЫВОД И АНАЛИЗ РЕЗУЛЬТАТОВ
+            // ============================================================
+            '<h3>9. Вывод и анализ результатов</h3>',
+
+            '<h4>9.1 Форматы вывода</h4>',
+            App.createCodeBlock(
+                '# Нормальный вывод (на экран)\nnmap 192.168.1.1\n\n# XML-вывод (для автоматизации)\nnmap -oX scan.xml 192.168.1.1\n\n# Grepable-вывод (для парсинга)\nnmap -oG scan.gnmap 192.168.1.1\n\n# Все форматы сразу\nnmap -oA scan_results 192.168.1.1\n# Создаст: scan_results.nmap, scan_results.xml, scan_results.gnmap',
+                'bash'
+            ),
+
+            '<h4>9.2 Парсинг XML-вывода</h4>',
+            App.createCodeBlock(
+                '# Извлечь все открытые порты из XML\npython3 -c "\nimport xml.etree.ElementTree as ET\ntree = ET.parse('scan.xml')\nroot = tree.getroot()\nfor host in root.findall('host'):\n    ip = host.find('address').get('addr')\n    for port in host.findall('.//port'):\n        if port.find('state').get('state') == 'open':\n            print(f'{ip}:{port.get(\"portid\")}/tcp')\n"\n\n# С помощью ndiff (сравнение двух сканов)\nndiff scan1.xml scan2.xml',
+                'bash'
+            ),
+
+            // ============================================================
+            // 10. ПРАКТИЧЕСКИЕ ПРИМЕРЫ
+            // ============================================================
+            '<h3>10. Практические примеры</h3>',
+
+            '<h4>10.1 Быстрый аудит веб-сервера</h4>',
+            App.createCodeBlock('nmap -sV -sC --script http-enum,http-headers,http-methods -p 80,443 target.com', 'bash'),
+
+            '<h4>10.2 Полный аудит Windows-сервера</h4>',
+            App.createCodeBlock('nmap -sS -sV -O --script smb-vuln-ms17-010,smb-enum-shares,smb-os-discovery -p 135,139,445,3389 target.com', 'bash'),
+
+            '<h4>10.3 Обнаружение всех хостов в сети</h4>',
+            App.createCodeBlock('nmap -sn 192.168.1.0/24', 'bash'),
+
+            '<h4>10.4 Сканирование топ-100 портов</h4>',
+            App.createCodeBlock('nmap --top-ports 100 192.168.1.1', 'bash'),
+
+            // ============================================================
+            // 11. ПРАКТИКУМ ПО NMAP
+            // ============================================================
+            '<h3>11. Практикум по Nmap</h3>',
+            '<p><strong>Задание 1:</strong> Выполните SYN-сканирование локальной подсети и определите все активные хосты с открытыми портами.</p>',
+            '<p><strong>Решение:</strong> <code>nmap -sS -Pn 192.168.1.0/24</code></p>',
+
+            '<p><strong>Задание 2:</strong> Запустите NSE-скрипт http-enum против веб-сервера и найдите скрытые директории.</p>',
+            '<p><strong>Решение:</strong> <code>nmap --script http-enum -p 80,443 target.com</code></p>',
+
+            '<p><strong>Задание 3:</strong> Создайте decoy-сканирование с 5 подставными хостами и определите, логирует ли цель ваш реальный IP.</p>',
+            '<p><strong>Решение:</strong> <code>nmap -D RND:5 192.168.1.1</code></p>',
+
+            '<p><strong>Задание 4:</strong> Просканируйте UDP-порты DNS-сервера и определите версию BIND.</p>',
+            '<p><strong>Решение:</strong> <code>nmap -sU -sV -p 53 192.168.1.1</code></p>',
+
+            // ============================================================
+            // 12. ШПАРГАЛКА ПО NMAP
+            // ============================================================
+            '<h3>12. Шпаргалка по Nmap</h3>',
+            App.createCodeBlock(
+                '# ===== ОБНАРУЖЕНИЕ ХОСТОВ =====\nnmap -sn 192.168.1.0/24          # Ping scan (только живые хосты)\nnmap -Pn 192.168.1.1             # Пропустить обнаружение\n\n# ===== ТЕХНИКИ СКАНИРОВАНИЯ =====\nnmap -sS 192.168.1.1             # SYN scan (stealth)\nnmap -sT 192.168.1.1             # TCP Connect scan\nnmap -sU 192.168.1.1             # UDP scan\nnmap -sF 192.168.1.1             # FIN scan\nnmap -sN 192.168.1.1             # NULL scan\nnmap -sX 192.168.1.1             # XMAS scan\nnmap -sA 192.168.1.1             # ACK scan (маппинг фаервола)\n\n# ===== ОПРЕДЕЛЕНИЕ СЕРВИСОВ И ОС =====\nnmap -sV 192.168.1.1             # Версии сервисов\nnmap -O 192.168.1.1              # Определение ОС\nnmap -A 192.168.1.1              # Агрессивное (ОС + сервисы + скрипты)\n\n# ===== NSE-СКРИПТЫ =====\nnmap -sC 192.168.1.1             # Скрипты по умолчанию\nnmap --script vuln 192.168.1.1   # Проверка уязвимостей\nnmap --script http-enum -p 80,443 target.com\n\n# ===== ТАЙМИНГ =====\nnmap -T4 192.168.1.1             # Агрессивный тайминг\n\n# ===== ОБХОД ЗАЩИТЫ =====\nnmap -f 192.168.1.1              # Фрагментация\nnmap -D RND:10 192.168.1.1       # Decoy-сканирование\nnmap --spoof-mac 0 192.168.1.1   # Случайный MAC\n\n# ===== ВЫВОД =====\nnmap -oA results 192.168.1.1     # Все форматы вывода',
+                'bash'
+            ),
+
+            // ============================================================
+            // 13. ЗАКЛЮЧЕНИЕ
+            // ============================================================
+            '<h3>13. Заключение</h3>',
+            '<p>Nmap — фундаментальный инструмент для пентестера. Ключевые принципы работы с ним:</p>',
             '<ol>',
-            '<li>Вычислите SHA-256 для строк: "hello", "Hello", "hello!" — сравните результаты, убедитесь в лавинном эффекте.</li>',
-            '<li>Сгенерируйте случайную соль и хэшируйте один и тот же пароль дважды с разной солью — хэши должны быть разными.</li>',
-            '<li>Реализуйте HMAC-SHA256 для сообщения "Hello, World!" с ключом "secret".</li>',
-            '<li>Проверьте целостность любого скачанного файла: вычислите его SHA-256 и сравните с контрольной суммой.</li>',
-            '<li>Найдите онлайн-инструмент для демонстрации коллизий MD5 и посмотрите на два разных PDF с одинаковым MD5-хэшем.</li>',
-            '<li>Изучите, как Bitcoin использует двойной SHA-256 в майнинге (Proof of Work).</li>',
+            '<li><strong>Начинайте с пассивного сбора:</strong> сначала определите живые хосты (ping scan), затем порты, затем сервисы.</li>',
+            '<li><strong>Используйте NSE:</strong> скрипты автоматизируют рутину и позволяют быстро находить уязвимости.</li>',
+            '<li><strong>Контролируйте скорость:</strong> в реальных пентестах используйте -T2 или -T3, чтобы не перегружать сеть и не тригерить IDS.</li>',
+            '<li><strong>Документируйте результаты:</strong> всегда сохраняйте вывод в XML/Grepable для отчётов и парсинга.</li>',
+            '<li><strong>Комбинируйте техники:</strong> SYN + UDP + NSE дают полную картину поверхности атаки.</li>',
             '</ol>',
-
-            // ============ 7. ВЫВОДЫ ============
-            '<h3>Ключевые выводы</h3>',
+            '<p><strong>Полезные ссылки:</strong></p>',
             '<ul>',
-            '<li>Хэширование ≠ шифрование. Хэш — односторонняя функция, шифрование — двусторонняя.</li>',
-            '<li>Три главных свойства: детерминированность, лавинный эффект, устойчивость к коллизиям.</li>',
-            '<li>MD5 и SHA-1 сломаны — не использовать для security-применений.</li>',
-            '<li>SHA-256 и SHA-512 — текущий стандарт. SHA-3 (Keccak) — новый стандарт.</li>',
-            '<li>Пароли хранить с солью и pepper, используя PBKDF2, bcrypt, scrypt или Argon2.</li>',
-            '<li>Радужные таблицы бесполезны при правильной реализации соли.</li>',
-            '<li>HMAC — хэш с ключом для аутентификации сообщений.</li>',
-            '<li>Length extension attack работает против SHA-2, но не против SHA-3 и HMAC.</li>',
-            '<li>ГОСТ Р 34.11-2018 «Стрибог» — российский стандарт, обязателен в госИС.</li>',
-            '<li>Понимание хэш-функций необходимо для работы с паролями, цифровыми подписями, блокчейном и проверкой целостности данных.</li>',
+            '<li><a href="https://nmap.org/book/" target="_blank">Официальная книга Nmap (бесплатно)</a></li>',
+            '<li><a href="https://nmap.org/nsedoc/" target="_blank">Документация по NSE-скриптам</a></li>',
+            '<li><a href="https://github.com/nmap/nmap" target="_blank">Репозиторий Nmap на GitHub</a></li>',
             '</ul>'
         ].join('');
     }

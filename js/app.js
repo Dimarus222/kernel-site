@@ -80,7 +80,15 @@ var App = (function() {
     function createCodeBlock(code, language) {
         return '<div class="code-block"><pre><code class="language-' + (language || 'plaintext') + '">' + escapeHtml(code) + '</code></pre></div>';
     }
-
+function toggleMenu() {
+    var nav = document.querySelector('.nav');
+    var overlay = document.getElementById('navOverlay');
+    var btn = document.getElementById('burgerBtn');
+    nav.classList.toggle('open');
+    overlay.classList.toggle('open');
+    btn.classList.toggle('open');
+    btn.textContent = nav.classList.contains('open') ? '✕' : '☰';
+}
     return {
         showSection: showSection,
         openNote: openNote,

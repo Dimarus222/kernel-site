@@ -9,7 +9,101 @@ KERNEL_DATA.addNote({
     date: '2026',
     content: function() {
 
+        // Вспомогательные CSS-стили для конспекта
+        const styles = `
+            <style>
+                .ws-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 15px 0;
+                    font-size: 14px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                }
+                .ws-table th {
+                    background: #2c3e50;
+                    color: white;
+                    padding: 10px 12px;
+                    text-align: left;
+                    font-weight: 600;
+                }
+                .ws-table td {
+                    border: 1px solid #ddd;
+                    padding: 8px 12px;
+                }
+                .ws-table tr:nth-child(even) {
+                    background: #f8f9fa;
+                }
+                .ws-table tr:hover {
+                    background: #e8f4f8;
+                }
+                .ws-diagram {
+                    background: #1a1a2e;
+                    color: #e0e0e0;
+                    font-family: 'Courier New', monospace;
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin: 15px 0;
+                    overflow-x: auto;
+                    font-size: 13px;
+                    line-height: 1.6;
+                }
+                .ws-diagram .client { color: #66bbff; font-weight: bold; }
+                .ws-diagram .server { color: #ff6b6b; font-weight: bold; }
+                .ws-diagram .state { color: #ffd93d; }
+                .ws-diagram .arrow { color: #888; }
+                .ws-diagram .comment { color: #6c757d; font-style: italic; }
+                .ws-packet-header {
+                    background: #f0f4f8;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin: 15px 0;
+                    overflow-x: auto;
+                }
+                .ws-bit-table {
+                    border-collapse: collapse;
+                    font-size: 11px;
+                    margin: 10px 0;
+                }
+                .ws-bit-table td {
+                    border: 1px solid #999;
+                    padding: 4px 8px;
+                    text-align: center;
+                    min-width: 28px;
+                }
+                .ws-bit-table .header-row td {
+                    background: #2c3e50;
+                    color: #fff;
+                    font-weight: bold;
+                }
+                .ws-bit-table .field-label {
+                    background: #e8ecf0;
+                    font-weight: bold;
+                    text-align: right;
+                    padding-right: 10px;
+                }
+                .ws-state-box {
+                    display: inline-block;
+                    padding: 8px 14px;
+                    margin: 4px;
+                    border-radius: 6px;
+                    font-weight: bold;
+                    font-size: 13px;
+                }
+                .ws-state-established { background: #d4edda; color: #155724; border: 2px solid #28a745; }
+                .ws-state-syn { background: #fff3cd; color: #856404; border: 2px solid #ffc107; }
+                .ws-state-fin { background: #f8d7da; color: #721c24; border: 2px solid #dc3545; }
+                .ws-state-closed { background: #e2e3e5; color: #383d41; border: 2px solid #6c757d; }
+                .ws-flag-table td:first-child {
+                    font-family: monospace;
+                    font-weight: bold;
+                    background: #f0f0f0;
+                }
+            </style>
+        `;
+
         return [
+            styles,
+
             // ============================================================
             // 1. ВВЕДЕНИЕ В WIRESHARK
             // ============================================================
@@ -34,32 +128,44 @@ KERNEL_DATA.addNote({
             '<li><strong>ARP-спуфинг</strong> — атака «человек посередине», при которой злоумышленник подменяет ARP-таблицы, заставляя трафик проходить через свой компьютер. В Kali Linux для этого используется <code>arpspoof</code> из пакета dsniff.</li>',
             '</ul>',
             '<p><strong>Режимы захвата Wi-Fi:</strong></p>',
-            '<ul>',
-            '<li><strong>Promiscuous mode</strong> — принимаются все пакеты, которые видит Wi-Fi-адаптер в рамках своей сети.</li>',
-            '<li><strong>Monitor mode</strong> — адаптер слушает все беспроводные кадры на выбранном канале, включая кадры из других сетей и управляющие кадры (beacon, probe request/response). Включается командой <code>airmon-ng start wlan0</code>, после чего появляется интерфейс <code>wlan0mon</code>.</li>',
-            '</ul>',
+            '<table class="ws-table">',
+            '<tr><th>Режим</th><th>Описание</th><th>Активация</th></tr>',
+            '<tr><td><strong>Promiscuous mode</strong></td><td>Принимаются все пакеты, которые видит Wi-Fi-адаптер в рамках своей сети</td><td>По умолчанию при захвате</td></tr>',
+            '<tr><td><strong>Monitor mode</strong></td><td>Слушает все беспроводные кадры на выбранном канале, включая другие сети и управляющие кадры (beacon, probe request/response)</td><td><code>airmon-ng start wlan0</code> → <code>wlan0mon</code></td></tr>',
+            '</table>',
 
             '<h3>3. Интерфейс Wireshark</h3>',
             '<p>Главное окно Wireshark состоит из трёх панелей и строки фильтра:</p>',
-            '<ul>',
-            '<li><strong>Строка фильтра (Filter Toolbar)</strong> — находится вверху. Сюда вводится display filter. Зелёный цвет строки — фильтр корректен, красный — ошибка в синтаксисе.</li>',
-            '<li><strong>Packet List (Список пакетов)</strong> — верхняя панель. Каждый пакет отображается одной строкой с колонками: No. (номер), Time (время от начала захвата), Source (источник), Destination (назначение), Protocol (протокол), Length (длина), Info (краткая информация). Пакеты можно сортировать по любой колонке кликом по заголовку.</li>',
-            '<li><strong>Packet Details (Детали пакета)</strong> — средняя панель. Выбранный пакет раскрывается в виде дерева по уровням: Frame (метаданные захвата) → Ethernet II (MAC-адреса) → Internet Protocol Version 4 (IP-адреса, TTL, флаги) → Transmission Control Protocol (порты, флаги, seq/ack) → Прикладной протокол (HTTP, DNS, TLS). Каждый уровень можно развернуть и посмотреть значения полей.</li>',
-            '<li><strong>Packet Bytes (Байты пакета)</strong> — нижняя панель. Отображает сырое содержимое пакета в шестнадцатеричном (HEX) и текстовом (ASCII) виде. Байты, соответствующие выбранному полю в средней панели, подсвечиваются. Это позволяет видеть, где именно в пакете находится, например, флаг SYN или номер порта.</li>',
-            '</ul>',
+            '<table class="ws-table">',
+            '<tr><th>Элемент</th><th>Расположение</th><th>Назначение</th></tr>',
+            '<tr><td><strong>Строка фильтра</strong></td><td>Вверху</td><td>Display filter. Зелёный = корректен, красный = ошибка</td></tr>',
+            '<tr><td><strong>Packet List</strong></td><td>Верхняя панель</td><td>Список пакетов: No., Time, Source, Destination, Protocol, Length, Info</td></tr>',
+            '<tr><td><strong>Packet Details</strong></td><td>Средняя панель</td><td>Дерево: Frame → Ethernet → IP → TCP → Прикладной протокол</td></tr>',
+            '<tr><td><strong>Packet Bytes</strong></td><td>Нижняя панель</td><td>HEX + ASCII представление, подсветка выбранного поля</td></tr>',
+            '</table>',
             '<p><strong>Горячие клавиши:</strong></p>',
-            '<ul>',
-            '<li><strong>Ctrl+E</strong> — начать/остановить захват.</li>',
-            '<li><strong>Ctrl+K</strong> — открыть capture options.</li>',
-            '<li><strong>Ctrl+.</strong> — перейти к следующему пакету в диалоге (Conversation).</li>',
-            '<li><strong>Ctrl+→ / Ctrl+←</strong> — перейти к следующему/предыдущему пакету.</li>',
-            '</ul>',
+            '<table class="ws-table">',
+            '<tr><th>Клавиши</th><th>Действие</th></tr>',
+            '<tr><td><code>Ctrl+E</code></td><td>Начать / остановить захват</td></tr>',
+            '<tr><td><code>Ctrl+K</code></td><td>Открыть Capture Options</td></tr>',
+            '<tr><td><code>Ctrl+.</code></td><td>Следующий пакет в диалоге (Conversation)</td></tr>',
+            '<tr><td><code>Ctrl+→ / Ctrl+←</code></td><td>Следующий / предыдущий пакет</td></tr>',
+            '</table>',
 
             // ============================================================
             // 4. ФИЛЬТРЫ
             // ============================================================
             '<h3>4. Фильтры: Capture Filter vs Display Filter</h3>',
             '<p>В Wireshark существует два принципиально разных типа фильтров. Путаница между ними — одна из самых частых ошибок начинающих:</p>',
+
+            '<table class="ws-table">',
+            '<tr><th>Характеристика</th><th>Capture Filter (BPF)</th><th>Display Filter</th></tr>',
+            '<tr><td><strong>Когда применяется</strong></td><td>До начала захвата</td><td>После захвата</td></tr>',
+            '<tr><td><strong>Где задаётся</strong></td><td>Capture → Options, флаг <code>-f</code> в tshark</td><td>Строка фильтра над списком пакетов</td></tr>',
+            '<tr><td><strong>Синтаксис</strong></td><td>BPF (ограничен)</td><td>Богатый, точечная нотация</td></tr>',
+            '<tr><td><strong>Судьба пакетов</strong></td><td>Отбрасываются навсегда</td><td>Скрыты, но сохранены в файле</td></tr>',
+            '<tr><td><strong>Пример</strong></td><td><code>tcp port 80</code></td><td><code>http.request.method == "GET"</code></td></tr>',
+            '</table>',
 
             '<h4>4.1 Capture Filter (фильтр захвата, BPF)</h4>',
             '<p>Задаётся <strong>до начала захвата</strong> в поле «Capture → Options → Capture filter» или через флаг <code>-f</code> в tshark. Определяет, какие пакеты будут сохранены в файл. Пакеты, не прошедшие фильтр, <strong>отбрасываются навсегда</strong> — восстановить их невозможно.</p>',
@@ -81,12 +187,12 @@ KERNEL_DATA.addNote({
             ),
 
             '<h4>4.3 Практикум по фильтрам</h4>',
-            '<p><strong>Задание 1:</strong> Откройте любой PCAP-файл. Напишите фильтр, который покажет только TCP-пакеты, адресованные на порт 80, от источника из сети 192.168.1.0/24.</p>',
-            '<p><strong>Решение:</strong> <code>tcp.dstport == 80 && ip.src == 192.168.1.0/24</code></p>',
-            '<p><strong>Задание 2:</strong> Найдите все пакеты, содержащие строку «password» в любом месте (заголовках или payload).</p>',
-            '<p><strong>Решение:</strong> <code>frame contains "password"</code></p>',
-            '<p><strong>Задание 3:</strong> Отфильтруйте все DNS-запросы, длина имени в которых превышает 40 символов (признак DNS-туннелирования).</p>',
-            '<p><strong>Решение:</strong> <code>dns.qry.name.len > 40</code></p>',
+            '<table class="ws-table">',
+            '<tr><th>#</th><th>Задание</th><th>Решение</th></tr>',
+            '<tr><td>1</td><td>Показать TCP-пакеты на порт 80 от источника из сети 192.168.1.0/24</td><td><code>tcp.dstport == 80 && ip.src == 192.168.1.0/24</code></td></tr>',
+            '<tr><td>2</td><td>Найти все пакеты, содержащие строку «password»</td><td><code>frame contains "password"</code></td></tr>',
+            '<tr><td>3</td><td>DNS-запросы с длиной имени > 40 символов (туннелирование)</td><td><code>dns.qry.name.len > 40</code></td></tr>',
+            '</table>',
 
             // ============================================================
             // 5. TCP
@@ -96,65 +202,49 @@ KERNEL_DATA.addNote({
 
             '<h4>5.1 Структура TCP-заголовка</h4>',
             '<p>TCP-заголовок имеет размер от 20 до 60 байт и содержит поля, управляющие соединением:</p>',
-            // Заменяем ASCII-схему заголовка на HTML-таблицу
-            '<div style="font-family: monospace; background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto;">',
-            '<table style="border-collapse: collapse; text-align: center; font-size: 11px; line-height: 1.5;">',
-            '<tr style="color: #888;"><td colspan="32">0                   1                   2                   3</td></tr>',
-            '<tr style="color: #888;"><td colspan="32">0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1</td></tr>',
-            '<tr style="border-top: 2px solid #333;">',
-            '<td colspan="16" style="border: 1px solid #333; padding: 6px 12px;">Source Port</td>',
-            '<td colspan="16" style="border: 1px solid #333; padding: 6px 12px;">Destination Port</td>',
-            '</tr>',
+
+            // КРАСИВАЯ ТАБЛИЦА ДЛЯ ЗАГОЛОВКА TCP
+            '<div class="ws-packet-header">',
+            '<p style="font-weight: bold; margin-bottom: 10px;">📦 Структура TCP-заголовка (каждая строка = 32 бита)</p>',
+            '<table class="ws-bit-table">',
+            '<tr><td colspan="16" style="background:#e3f2fd; font-weight:bold;">Source Port (16 бит)</td><td colspan="16" style="background:#fff3e0; font-weight:bold;">Destination Port (16 бит)</td></tr>',
+            '<tr><td colspan="32" style="background:#e8f5e9; font-weight:bold;">Sequence Number (32 бита)</td></tr>',
+            '<tr><td colspan="32" style="background:#fce4ec; font-weight:bold;">Acknowledgment Number (32 бита)</td></tr>',
             '<tr>',
-            '<td colspan="32" style="border: 1px solid #333; padding: 6px;">Sequence Number</td>',
+            '<td colspan="4" style="background:#f3e5f5;">Data Offset</td>',
+            '<td colspan="3" style="background:#e0e0e0;">Reserved</td>',
+            '<td>CWR</td><td>ECE</td><td>URG</td><td>ACK</td>',
+            '<td>PSH</td><td>RST</td><td>SYN</td><td>FIN</td>',
+            '<td colspan="16" style="background:#fff9c4;">Window Size (16 бит)</td>',
             '</tr>',
-            '<tr>',
-            '<td colspan="32" style="border: 1px solid #333; padding: 6px;">Acknowledgment Number</td>',
-            '</tr>',
-            '<tr>',
-            '<td colspan="4" style="border: 1px solid #333; padding: 6px;">Data Offset</td>',
-            '<td colspan="3" style="border: 1px solid #333; padding: 6px;">Resv</td>',
-            '<td style="border: 1px solid #333; padding: 6px;">CWR</td>',
-            '<td style="border: 1px solid #333; padding: 6px;">ECE</td>',
-            '<td style="border: 1px solid #333; padding: 6px;">URG</td>',
-            '<td style="border: 1px solid #333; padding: 6px;">ACK</td>',
-            '<td style="border: 1px solid #333; padding: 6px;">PSH</td>',
-            '<td style="border: 1px solid #333; padding: 6px;">RST</td>',
-            '<td style="border: 1px solid #333; padding: 6px;">SYN</td>',
-            '<td style="border: 1px solid #333; padding: 6px;">FIN</td>',
-            '<td colspan="16" style="border: 1px solid #333; padding: 6px;">Window Size</td>',
-            '</tr>',
-            '<tr>',
-            '<td colspan="16" style="border: 1px solid #333; padding: 6px;">Checksum</td>',
-            '<td colspan="16" style="border: 1px solid #333; padding: 6px;">Urgent Pointer</td>',
-            '</tr>',
-            '<tr>',
-            '<td colspan="32" style="border: 1px solid #333; padding: 6px;">Options (if Data Offset > 5)</td>',
-            '</tr>',
+            '<tr><td colspan="16" style="background:#e1f5fe;">Checksum (16 бит)</td><td colspan="16" style="background:#f1f8e9;">Urgent Pointer (16 бит)</td></tr>',
+            '<tr><td colspan="32" style="background:#eceff1; font-style:italic;">Options (переменная длина, если Data Offset > 5)</td></tr>',
             '</table>',
             '</div>',
+
             '<p><strong>Ключевые поля заголовка TCP:</strong></p>',
-            '<ul>',
-            '<li><strong>Source Port / Destination Port (по 16 бит)</strong> — порты отправителя и получателя. Вместе с IP-адресами образуют сокет.</li>',
-            '<li><strong>Sequence Number (32 бита)</strong> — номер первого байта данных в этом сегменте. Начальное значение выбирается случайно при установке соединения.</li>',
-            '<li><strong>Acknowledgment Number (32 бита)</strong> — номер следующего ожидаемого байта. Подтверждает получение всех байт до этого номера.</li>',
-            '<li><strong>Data Offset (4 бита)</strong> — размер заголовка в 32-битных словах (обычно 5, т.е. 20 байт).</li>',
-            '<li><strong>Flags (9 бит)</strong> — флаги управления: NS, CWR, ECE, URG, ACK, PSH, RST, SYN, FIN.</li>',
-            '<li><strong>Window Size (16 бит)</strong> — размер окна приёма. Сколько байт отправитель готов принять без подтверждения. Управление потоком.</li>',
-            '<li><strong>Checksum (16 бит)</strong> — контрольная сумма для проверки целостности.</li>',
-            '<li><strong>Urgent Pointer (16 бит)</strong> — указывает на срочные данные (используется редко).</li>',
-            '</ul>',
+            '<table class="ws-table">',
+            '<tr><th>Поле</th><th>Размер</th><th>Назначение</th></tr>',
+            '<tr><td><strong>Source Port / Destination Port</strong></td><td>по 16 бит</td><td>Порты отправителя и получателя. Вместе с IP-адресами образуют сокет</td></tr>',
+            '<tr><td><strong>Sequence Number</strong></td><td>32 бита</td><td>Номер первого байта данных в этом сегменте. Начальное значение случайно</td></tr>',
+            '<tr><td><strong>Acknowledgment Number</strong></td><td>32 бита</td><td>Номер следующего ожидаемого байта (подтверждение получения)</td></tr>',
+            '<tr><td><strong>Data Offset</strong></td><td>4 бита</td><td>Размер заголовка в 32-битных словах (обычно 5 = 20 байт)</td></tr>',
+            '<tr><td><strong>Flags</strong></td><td>9 бит</td><td>NS, CWR, ECE, URG, ACK, PSH, RST, SYN, FIN</td></tr>',
+            '<tr><td><strong>Window Size</strong></td><td>16 бит</td><td>Размер окна приёма — управление потоком</td></tr>',
+            '<tr><td><strong>Checksum</strong></td><td>16 бит</td><td>Контрольная сумма для проверки целостности</td></tr>',
+            '<tr><td><strong>Urgent Pointer</strong></td><td>16 бит</td><td>Указатель на срочные данные (используется редко)</td></tr>',
+            '</table>',
 
             '<h4>5.2 Sequence и Acknowledgment Numbers</h4>',
             '<p>Это самое важное для понимания TCP. Sequence Number (seq) — номер первого байта в сегменте. Acknowledgment Number (ack) — номер следующего байта, который ожидает отправитель.</p>',
             '<p><strong>Правила:</strong></p>',
-            '<ul>',
-            '<li>Начальные seq выбираются случайно при установке соединения (для защиты от атак).</li>',
-            '<li>Каждый байт данных увеличивает seq на 1.</li>',
-            '<li>SYN и FIN считаются за 1 байт (потребляют один номер последовательности).</li>',
-            '<li>ACK не потребляет номер последовательности.</li>',
-            '<li>Пакет без данных (пустой ACK) не увеличивает seq.</li>',
-            '</ul>',
+            '<table class="ws-table">',
+            '<tr><th>Правило</th><th>Пояснение</th></tr>',
+            '<tr><td>Начальные seq случайны</td><td>Выбираются при установке соединения (защита от атак)</td></tr>',
+            '<tr><td>Каждый байт данных +1 seq</td><td>seq увеличивается на количество переданных байт</td></tr>',
+            '<tr><td>SYN и FIN считаются за 1 байт</td><td>Потребляют один номер последовательности</td></tr>',
+            '<tr><td>ACK не потребляет seq</td><td>Пустой ACK не увеличивает номер последовательности</td></tr>',
+            '</table>',
             '<p><strong>Пример диалога:</strong></p>',
             App.createCodeBlock(
                 'Клиент → Сервер: SYN, seq=100\nСервер → Клиент: SYN-ACK, seq=500, ack=101\nКлиент → Сервер: ACK, seq=101, ack=501\nКлиент → Сервер: PSH-ACK, seq=101, ack=501, len=200 (данные 101-300)\nСервер → Клиент: ACK, seq=501, ack=301 (подтвердил 200 байт)',
@@ -163,27 +253,40 @@ KERNEL_DATA.addNote({
 
             '<h4>5.3 Трёхстороннее рукопожатие (Three-Way Handshake)</h4>',
             '<p>Прежде чем начать передачу данных, TCP устанавливает соединение через трёхстороннее рукопожатие. Этот процесс синхронизирует начальные sequence numbers обеих сторон:</p>',
-            '<ol>',
-            '<li><strong>Шаг 1 — SYN:</strong> Клиент отправляет TCP-сегмент с флагом SYN и случайным начальным seq=x. Клиент переходит в состояние <strong>SYN_SENT</strong>. В Wireshark: <code>tcp.flags.syn == 1 && tcp.flags.ack == 0</code>.</li>',
-            '<li><strong>Шаг 2 — SYN-ACK:</strong> Сервер получает SYN, выделяет ресурсы под соединение (создаёт TCB — Transmission Control Block) и отправляет ответный сегмент с флагами SYN и ACK. Сервер устанавливает свой начальный seq=y и подтверждает клиентский SYN значением ack=x+1. Сервер переходит в состояние <strong>SYN_RECEIVED</strong>. В Wireshark: <code>tcp.flags.syn == 1 && tcp.flags.ack == 1</code>.</li>',
-            '<li><strong>Шаг 3 — ACK:</strong> Клиент получает SYN-ACK, отправляет сегмент с флагом ACK и ack=y+1. Клиент переходит в <strong>ESTABLISHED</strong>. Сервер получает этот ACK и тоже переходит в <strong>ESTABLISHED</strong>. В Wireshark: <code>tcp.flags.ack == 1 && tcp.seq == x+1 && tcp.ack == y+1</code>.</li>',
-            '</ol>',
-            // Заменяем ASCII-схему рукопожатия на HTML
-            '<div style="font-family: monospace; font-size: 13px; background: #f8f8f8; padding: 15px; border-radius: 5px; overflow-x: auto; line-height: 1.7;">',
-            '<span style="color: #00f;">Client</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #c00;">Server</span><br>',
-            '<span style="color: #00f;">&nbsp; |</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #c00;">|</span><br>',
-            '<span style="color: #00f;">&nbsp; |</span>-------- SYN (seq=100) ----------&gt;<span style="color: #c00;">|</span> &nbsp;Шаг 1: флаг SYN<br>',
-            '<span style="color: #00f;">&nbsp; |</span> &nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #888;">[SYN_SENT]</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #c00;">|</span> &nbsp;<span style="color: #888;">[LISTEN → SYN_RCVD]</span><br>',
-            '<span style="color: #00f;">&nbsp; |</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #c00;">|</span><br>',
-            '<span style="color: #00f;">&nbsp; |</span>&lt;--- SYN-ACK (seq=500, ack=101)---<span style="color: #c00;">|</span> &nbsp;Шаг 2: флаги SYN+ACK<br>',
-            '<span style="color: #00f;">&nbsp; |</span> &nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #888;">[SYN_SENT → ESTABLISHED]</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #c00;">|</span> &nbsp;<span style="color: #888;">[SYN_RCVD]</span><br>',
-            '<span style="color: #00f;">&nbsp; |</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #c00;">|</span><br>',
-            '<span style="color: #00f;">&nbsp; |</span>-------- ACK (seq=101, ack=501)--&gt;<span style="color: #c00;">|</span> &nbsp;Шаг 3: флаг ACK<br>',
-            '<span style="color: #00f;">&nbsp; |</span> &nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #888;">[ESTABLISHED]</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #c00;">|</span> &nbsp;<span style="color: #888;">[SYN_RCVD → ESTABLISHED]</span><br>',
-            '<span style="color: #00f;">&nbsp; |</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #c00;">|</span><br>',
-            '<span style="color: #00f;">&nbsp; |</span>===== <strong>СОЕДИНЕНИЕ УСТАНОВЛЕНО</strong> =====<span style="color: #c00;">|</span><br>',
-            '<span style="color: #00f;">&nbsp; |</span> &nbsp;&nbsp;&nbsp;&nbsp; Можно передавать данные &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color: #c00;">|</span>',
-            '</div>',
+
+            // КРАСИВАЯ ДИАГРАММА РУКОПОЖАТИЯ ТАБЛИЦЕЙ
+            '<table class="ws-table" style="text-align: center;">',
+            '<tr style="background: #e3f2fd;">',
+            '<th style="width: 5%;">Шаг</th>',
+            '<th style="width: 25%;">Клиент</th>',
+            '<th style="width: 10%;">Направление</th>',
+            '<th style="width: 25%;">Сервер</th>',
+            '<th style="width: 35%;">Детали</th>',
+            '</tr>',
+            '<tr>',
+            '<td><span class="ws-state-syn">1</span></td>',
+            '<td><strong>SYN_SENT</strong><br>seq=x</td>',
+            '<td style="font-size: 20px;">→<br><small>SYN</small></td>',
+            '<td>LISTEN → <strong>SYN_RCVD</strong></td>',
+            '<td style="text-align: left;">Клиент отправляет SYN. Фильтр Wireshark:<br><code>tcp.flags.syn==1 && tcp.flags.ack==0</code></td>',
+            '</tr>',
+            '<tr>',
+            '<td><span class="ws-state-syn">2</span></td>',
+            '<td>SYN_SENT → <strong>ESTABLISHED</strong></td>',
+            '<td style="font-size: 20px;">←<br><small>SYN-ACK</small></td>',
+            '<td><strong>SYN_RCVD</strong><br>seq=y, ack=x+1</td>',
+            '<td style="text-align: left;">Сервер отвечает SYN+ACK. Фильтр:<br><code>tcp.flags.syn==1 && tcp.flags.ack==1</code></td>',
+            '</tr>',
+            '<tr>',
+            '<td><span class="ws-state-established">3</span></td>',
+            '<td><strong>ESTABLISHED</strong><br>seq=x+1, ack=y+1</td>',
+            '<td style="font-size: 20px;">→<br><small>ACK</small></td>',
+            '<td>SYN_RCVD → <strong>ESTABLISHED</strong></td>',
+            '<td style="text-align: left;">Клиент подтверждает. Фильтр:<br><code>tcp.flags.ack==1</code></td>',
+            '</tr>',
+            '</table>',
+            '<p style="text-align: center; margin-top: 10px;"><span class="ws-state-established">✓ СОЕДИНЕНИЕ УСТАНОВЛЕНО — можно передавать данные</span></p>',
+
             '<p><strong>Почему именно три шага?</strong> Двухшаговое рукопожатие (SYN → SYN-ACK) не обеспечивает надёжной синхронизации: клиент не подтверждает получение серверного SYN, сервер не знает, дошёл ли его SYN-ACK. Трёхшаговое рукопожатие гарантирует, что обе стороны подтвердили готовность к обмену и согласовали начальные номера последовательностей.</p>',
             '<p><strong>Как найти рукопожатие в Wireshark:</strong></p>',
             '<ol>',
@@ -197,54 +300,22 @@ KERNEL_DATA.addNote({
 
             '<h4>5.4 Диаграмма состояний TCP</h4>',
             '<p>Каждое TCP-соединение проходит через серию состояний от рождения (LISTEN/SYN_SENT) до смерти (CLOSED/TIME_WAIT). Понимание этих состояний критически важно для диагностики сетевых проблем и обнаружения атак:</p>',
-            // Визуализация диаграммы состояний
-            '<div style="font-family: monospace; font-size: 13px; background: #f8f8f8; padding: 15px; border-radius: 5px; overflow-x: auto; line-height: 1.6; text-align: center;">',
-            '<pre style="background: none; border: none; padding: 0; margin: 0; color: #333; font-size: 12px;">',
-            '                              +---------+ Активное открытие (connect)\n',
-            '                              |  <strong>CLOSED</strong>  |\n',
-            '                              +---------+ Пассивное открытие (listen)\n',
-            '                                |     ^\n',
-            '                           SYN  |     |  RST / timeout\n',
-            '                                V     |\n',
-            '                              +---------+\n',
-            '                              |  <strong>LISTEN</strong>  |  Сервер ожидает входящих соединений\n',
-            '                              +---------+\n',
-            '                                |\n',
-            '                           SYN  |\n',
-            '                                V\n',
-            '                 +---------+  SYN  +-----------+\n',
-            '                 |<strong>SYN_SENT</strong> |------>|<strong>SYN_RCVD</strong>   |\n',
-            '                 +---------+       +-----------+\n',
-            '                      |                 |\n',
-            '                 ACK  |     SYN+ACK     |  ACK\n',
-            '                      V                 V\n',
-            '                 +-------------------------------+\n',
-            '                 |         <strong>ESTABLISHED</strong>          |  Обмен данными\n',
-            '                 +-------------------------------+\n',
-            '                      |                 |\n',
-            '                 FIN  |                 |  FIN (close)\n',
-            '                      V                 V\n',
-            '                 +-----------+      +------------+\n',
-            '                 |<strong>FIN_WAIT_1</strong> |      | <strong>CLOSE_WAIT</strong> |  Приложение ещё не закрыло\n',
-            '                 +-----------+      +------------+\n',
-            '                      |                 |\n',
-            '                 ACK  |            FIN  |  (приложение закрыло сокет)\n',
-            '                      V                 V\n',
-            '                 +-----------+      +----------+\n',
-            '                 |<strong>FIN_WAIT_2</strong> |      | <strong>LAST_ACK</strong>  |\n',
-            '                 +-----------+      +----------+\n',
-            '                      |                 |\n',
-            '                 FIN  |            ACK  |\n',
-            '                      V                 V\n',
-            '                 +-----------+      +----------+\n',
-            '                 | <strong>TIME_WAIT</strong> |      |  <strong>CLOSED</strong>  |\n',
-            '                 +-----------+      +----------+\n',
-            '                      |\n',
-            '            2MSL (~60с)|\n',
-            '                      V\n',
-            '                    <strong>CLOSED</strong>\n',
-            '</pre>',
-            '</div>',
+
+            // ТАБЛИЦА СОСТОЯНИЙ
+            '<table class="ws-table">',
+            '<tr><th>Состояние</th><th>Сторона</th><th>Описание</th><th>Индикатор</th></tr>',
+            '<tr><td><span class="ws-state-closed">CLOSED</span></td><td>Обе</td><td>Соединения нет</td><td>Начальное / конечное состояние</td></tr>',
+            '<tr><td><span class="ws-state-syn">LISTEN</span></td><td>Сервер</td><td>Ожидание входящих соединений</td><td>Серверный сокет открыт</td></tr>',
+            '<tr><td><span class="ws-state-syn">SYN_SENT</span></td><td>Клиент</td><td>Отправлен SYN, ожидание SYN-ACK</td><td>Активное открытие (connect)</td></tr>',
+            '<tr><td><span class="ws-state-syn">SYN_RCVD</span></td><td>Сервер</td><td>Получен SYN, отправлен SYN-ACK</td><td>Много = SYN-flood атака</td></tr>',
+            '<tr><td><span class="ws-state-established">ESTABLISHED</span></td><td>Обе</td><td>Соединение установлено, обмен данными</td><td>Нормальное рабочее состояние</td></tr>',
+            '<tr><td><span class="ws-state-fin">FIN_WAIT_1</span></td><td>Клиент</td><td>Отправлен FIN, ожидание ACK</td><td>Активное закрытие</td></tr>',
+            '<tr><td><span class="ws-state-fin">FIN_WAIT_2</span></td><td>Клиент</td><td>ACK получен, ожидание FIN от сервера</td><td>Сервер может ещё слать данные</td></tr>',
+            '<tr><td><span class="ws-state-fin">CLOSE_WAIT</span></td><td>Сервер</td><td>Получен FIN, но приложение ещё не закрыло сокет</td><td>Утечка ресурсов</td></tr>',
+            '<tr><td><span class="ws-state-fin">LAST_ACK</span></td><td>Сервер</td><td>Отправлен FIN, ожидание ACK</td><td>Пассивное закрытие</td></tr>',
+            '<tr><td><span class="ws-state-closed">TIME_WAIT</span></td><td>Клиент</td><td>Ожидание 2MSL (~60 сек) перед закрытием</td><td>Много = высокая нагрузка</td></tr>',
+            '</table>',
+
             '<p><strong>Значение состояний для безопасности:</strong></p>',
             '<ul>',
             '<li><strong>Много соединений в SYN_RECEIVED</strong> — признак SYN-flood атаки. Сервер отправляет SYN-ACK, но не получает ответного ACK.</li>',
@@ -254,33 +325,29 @@ KERNEL_DATA.addNote({
             '</ul>',
 
             '<h4>5.5 Флаги TCP-заголовка</h4>',
-            '<div style="overflow-x: auto;">',
-            '<table style="border-collapse: collapse; width: 100%; font-size: 14px;">',
-            '<tr style="background: #eee;">',
-            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Флаг</th>',
-            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Бит</th>',
-            '<th style="border: 1px solid #ccc; padding: 8px; text-align: left;">Назначение</th>',
-            '</tr>',
-            '<tr><td style="border: 1px solid #ccc; padding: 8px;">CWR</td><td style="border: 1px solid #ccc; padding: 8px;">8</td><td style="border: 1px solid #ccc; padding: 8px;">Congestion Window Reduced — окно перегрузки</td></tr>',
-            '<tr><td style="border: 1px solid #ccc; padding: 8px;">ECE</td><td style="border: 1px solid #ccc; padding: 8px;">7</td><td style="border: 1px solid #ccc; padding: 8px;">ECN-Echo — уведомление о перегрузке</td></tr>',
-            '<tr><td style="border: 1px solid #ccc; padding: 8px;">URG</td><td style="border: 1px solid #ccc; padding: 8px;">6</td><td style="border: 1px solid #ccc; padding: 8px;">Urgent — срочные данные (используется редко)</td></tr>',
-            '<tr><td style="border: 1px solid #ccc; padding: 8px;">ACK</td><td style="border: 1px solid #ccc; padding: 8px;">5</td><td style="border: 1px solid #ccc; padding: 8px;">Acknowledge — подтверждение получения</td></tr>',
-            '<tr><td style="border: 1px solid #ccc; padding: 8px;">PSH</td><td style="border: 1px solid #ccc; padding: 8px;">4</td><td style="border: 1px solid #ccc; padding: 8px;">Push — передать данные приложению немедленно</td></tr>',
-            '<tr><td style="border: 1px solid #ccc; padding: 8px;">RST</td><td style="border: 1px solid #ccc; padding: 8px;">3</td><td style="border: 1px solid #ccc; padding: 8px;">Reset — принудительный разрыв соединения</td></tr>',
-            '<tr><td style="border: 1px solid #ccc; padding: 8px;">SYN</td><td style="border: 1px solid #ccc; padding: 8px;">2</td><td style="border: 1px solid #ccc; padding: 8px;">Synchronize — запрос на установку соединения</td></tr>',
-            '<tr><td style="border: 1px solid #ccc; padding: 8px;">FIN</td><td style="border: 1px solid #ccc; padding: 8px;">1</td><td style="border: 1px solid #ccc; padding: 8px;">Finish — завершение передачи данных</td></tr>',
+            '<table class="ws-table ws-flag-table">',
+            '<tr><th>Флаг</th><th>Бит</th><th>Hex</th><th>Назначение</th></tr>',
+            '<tr><td><code>CWR</code></td><td>8</td><td>0x080</td><td>Congestion Window Reduced — окно перегрузки уменьшено</td></tr>',
+            '<tr><td><code>ECE</code></td><td>7</td><td>0x040</td><td>ECN-Echo — уведомление о перегрузке</td></tr>',
+            '<tr><td><code>URG</code></td><td>6</td><td>0x020</td><td>Urgent — срочные данные (используется редко)</td></tr>',
+            '<tr><td><code>ACK</code></td><td>5</td><td>0x010</td><td>Acknowledge — подтверждение получения данных</td></tr>',
+            '<tr><td><code>PSH</code></td><td>4</td><td>0x008</td><td>Push — передать данные приложению немедленно</td></tr>',
+            '<tr><td><code>RST</code></td><td>3</td><td>0x004</td><td>Reset — принудительный разрыв соединения</td></tr>',
+            '<tr><td><code>SYN</code></td><td>2</td><td>0x002</td><td>Synchronize — запрос на установку соединения</td></tr>',
+            '<tr><td><code>FIN</code></td><td>1</td><td>0x001</td><td>Finish — завершение передачи данных</td></tr>',
             '</table>',
-            '</div>',
-            '<p><strong>Как читать флаги в Wireshark:</strong> в панели деталей пакета раскройте «Transmission Control Protocol» → «Flags». Вы увидите шестнадцатеричное значение (например, 0x002 = SYN, 0x010 = ACK, 0x012 = SYN+ACK, 0x011 = FIN+ACK, 0x004 = RST).</p>',
+            '<p><strong>Как читать флаги в Wireshark:</strong> в панели деталей пакета раскройте «Transmission Control Protocol» → «Flags». Вы увидите шестнадцатеричное значение (например, <code>0x012</code> = SYN+ACK, <code>0x011</code> = FIN+ACK, <code>0x004</code> = RST).</p>',
 
             '<h4>5.6 Завершение соединения (Four-Way Handshake)</h4>',
-            '<p>TCP — полнодуплексный протокол: данные могут передаваться в обе стороны одновременно. Поэтому для завершения требуется <strong>четырёхстороннее рукопожатие</strong> — каждая сторона independently завершает свою половину соединения:</p>',
-            '<ol>',
-            '<li><strong>FIN от инициатора:</strong> «Я закончил передачу данных». Переходит в FIN_WAIT_1.</li>',
-            '<li><strong>ACK от получателя:</strong> «Я получил твой FIN». Инициатор переходит в FIN_WAIT_2. Получатель — в CLOSE_WAIT.</li>',
-            '<li><strong>FIN от получателя:</strong> «Я тоже закончил передачу». Получатель переходит в LAST_ACK.</li>',
-            '<li><strong>ACK от инициатора:</strong> «Я получил твой FIN». Инициатор переходит в TIME_WAIT на 2MSL (~60 секунд). Получатель закрывается.</li>',
-            '</ol>',
+            '<p>TCP — полнодуплексный протокол: данные могут передаваться в обе стороны одновременно. Поэтому для завершения требуется <strong>четырёхстороннее рукопожатие</strong> — каждая сторона независимо завершает свою половину соединения:</p>',
+
+            '<table class="ws-table" style="text-align: center;">',
+            '<tr style="background: #fce4ec;"><th>Шаг</th><th>Отправитель</th><th>Флаг</th><th>Получатель</th><th>Состояние после</th></tr>',
+            '<tr><td>1</td><td>Инициатор</td><td>FIN</td><td>→ Получатель</td><td>Инициатор: FIN_WAIT_1</td></tr>',
+            '<tr><td>2</td><td>← Получатель</td><td>ACK</td><td>Инициатор</td><td>Инициатор: FIN_WAIT_2, Получатель: CLOSE_WAIT</td></tr>',
+            '<tr><td>3</td><td>← Получатель</td><td>FIN</td><td>Инициатор</td><td>Получатель: LAST_ACK</td></tr>',
+            '<tr><td>4</td><td>Инициатор</td><td>ACK</td><td>→ Получатель</td><td>Инициатор: TIME_WAIT, Получатель: CLOSED</td></tr>',
+            '</table>',
             '<p>В Wireshark ищите 4 пакета с флагами FIN и ACK между двумя хостами. Фильтр: <code>tcp.flags.fin == 1</code>.</p>',
 
             '<h4>5.7 Управление потоком: Sliding Window</h4>',
@@ -293,11 +360,12 @@ KERNEL_DATA.addNote({
             '<p><strong>В Wireshark:</strong> Statistics → TCP Stream Graphs → Stevens\' Throughput. График показывает пропускную способность соединения. Провалы — потери пакетов и срабатывание контроля перегрузки.</p>',
 
             '<h4>5.9 Практикум по TCP-анализу</h4>',
-            '<p><strong>Задание 1:</strong> Захватите трафик при открытии любого веб-сайта. Найдите трёхстороннее рукопожатие (SYN, SYN-ACK, ACK) и определите начальные sequence numbers клиента и сервера.</p>',
-            '<p><strong>Решение:</strong> После захвата примените фильтр <code>tcp.stream eq N</code> для конкретного потока и найдите первые три пакета с флагами SYN.</p>',
-            '<p><strong>Задание 2:</strong> Найдите в захвате пакет с флагом RST. Что могло вызвать его появление?</p>',
-            '<p><strong>Подсказка:</strong> RST часто означает, что порт закрыт, или соединение было принудительно разорвано фаерволом/приложением.</p>',
-            '<p><strong>Задание 3:</strong> Используя Statistics → TCP Stream Graphs → Round Trip Time, определите задержку (RTT) для выбранного соединения. Высокий RTT может указывать на проблемы в сети или удалённое расположение сервера.</p>',
+            '<table class="ws-table">',
+            '<tr><th>#</th><th>Задание</th><th>Решение / Подсказка</th></tr>',
+            '<tr><td>1</td><td>Найдите трёхстороннее рукопожатие и определите начальные seq клиента и сервера</td><td>Фильтр <code>tcp.stream eq N</code>, первые три пакета с флагами SYN</td></tr>',
+            '<tr><td>2</td><td>Найдите пакет с флагом RST. Что могло вызвать его?</td><td>Порт закрыт, или соединение разорвано фаерволом/приложением</td></tr>',
+            '<tr><td>3</td><td>Определите RTT через TCP Stream Graphs</td><td>Statistics → TCP Stream Graphs → Round Trip Time</td></tr>',
+            '</table>',
 
             // ============================================================
             // 6. TLS
@@ -307,11 +375,14 @@ KERNEL_DATA.addNote({
 
             '<h4>6.1 TLS 1.3 Handshake (упрощённый)</h4>',
             '<p>TLS 1.3 значительно упростил рукопожатие по сравнению с TLS 1.2. Теперь оно требует всего 1-RTT (Round-Trip Time) для установки соединения:</p>',
-            '<ol>',
-            '<li><strong>Client Hello:</strong> Клиент отправляет: поддерживаемые версии TLS, наборы шифров (cipher suites), случайное число (client random), расширения: SNI (имя сервера), supported_groups (эллиптические кривые), key_share (публичный ключ Диффи-Хеллмана).</li>',
-            '<li><strong>Server Hello + Encrypted Extensions + Certificate + Certificate Verify + Finished:</strong> Сервер отвечает сразу несколькими сообщениями в одном полёте: выбирает версию и шифр, отправляет свой key_share, сертификат, подпись для верификации, и MAC рукопожатия.</li>',
-            '<li><strong>Finished (клиент):</strong> Клиент проверяет сертификат и подпись, отправляет свой MAC. Рукопожатие завершено. Можно передавать данные приложения.</li>',
-            '</ol>',
+
+            '<table class="ws-table" style="text-align: center;">',
+            '<tr style="background: #e8f5e9;"><th>Шаг</th><th>Отправитель</th><th>Сообщение</th><th>Содержимое</th></tr>',
+            '<tr><td>1</td><td>Клиент → Сервер</td><td><strong>Client Hello</strong></td><td style="text-align: left;">Версии TLS, cipher suites, client random, SNI, supported_groups, key_share</td></tr>',
+            '<tr><td>2</td><td>Сервер → Клиент</td><td><strong>Server Hello</strong> + Encrypted Extensions + <strong>Certificate</strong> + Certificate Verify + <strong>Finished</strong></td><td style="text-align: left;">Выбранный шифр, серверный key_share, сертификат, подпись, MAC рукопожатия</td></tr>',
+            '<tr><td>3</td><td>Клиент → Сервер</td><td><strong>Finished</strong></td><td style="text-align: left;">MAC рукопожатия от клиента</td></tr>',
+            '</table>',
+
             '<p><strong>Фильтры Wireshark для TLS:</strong></p>',
             App.createCodeBlock(
                 '# Типы сообщений TLS Handshake\ntls.handshake.type == 1      # Client Hello\ntls.handshake.type == 2      # Server Hello\ntls.handshake.type == 11     # Certificate\ntls.handshake.type == 15     # Certificate Verify\ntls.handshake.type == 20     # Finished\n\n# Просмотр SNI (имени сервера)\ntls.handshake.extensions_server_name\n\n# Просмотр сертификатов\ntls.handshake.certificate\n\n# Версия TLS\ntls.handshake.version\n\n# JA3-хеш (fingerprint клиента)\ntls.handshake.ja3  # полный JA3\n\n# Всё рукопожатие одного соединения\ntls.handshake and ip.addr eq <IP сервера>',
@@ -320,11 +391,12 @@ KERNEL_DATA.addNote({
 
             '<h4>6.2 Анализ сертификатов в Wireshark</h4>',
             '<p>При анализе TLS-трафика можно извлечь и изучить сертификаты серверов. Это помогает выявить подозрительные соединения:</p>',
-            '<ul>',
-            '<li><strong>Поддельные сертификаты</strong> — выпущены неизвестным УЦ (CA), не совпадают имена.</li>',
-            '<li><strong>Самоподписанные сертификаты</strong> — признак тестовой среды или атаки.</li>',
-            '<li><strong>Просроченные сертификаты</strong> — сервер не обновляет сертификаты.</li>',
-            '</ul>',
+            '<table class="ws-table">',
+            '<tr><th>Тип сертификата</th><th>Признак</th><th>Риск</th></tr>',
+            '<tr><td><strong>Поддельные сертификаты</strong></td><td>Выпущены неизвестным УЦ, не совпадают имена</td><td>MitM-атака, перехват трафика</td></tr>',
+            '<tr><td><strong>Самоподписанные</strong></td><td>Issuer = Subject, нет цепочки доверия</td><td>Тестовая среда или атака</td></tr>',
+            '<tr><td><strong>Просроченные</strong></td><td>Дата окончания в прошлом</td><td>Сервер не обновляет сертификаты</td></tr>',
+            '</table>',
             '<p>Для просмотра сертификата: найдите пакет с <code>tls.handshake.type == 11</code>, раскройте «Transport Layer Security → Handshake Protocol: Certificate → Certificates → Certificate». В контекстном меню выберите «Export Packet Bytes» для сохранения сертификата в файл.</p>',
 
             '<h4>6.3 JA3 Fingerprinting</h4>',
@@ -341,10 +413,11 @@ KERNEL_DATA.addNote({
             '<p>После этого весь ваш HTTPS-трафик будет расшифрован в Wireshark и вы сможете увидеть содержимое запросов и ответов.</p>',
 
             '<h4>6.5 Практикум по TLS</h4>',
-            '<p><strong>Задание 1:</strong> Найдите Client Hello пакеты в своём захвате и определите, какой SNI (имя сервера) был запрошен.</p>',
-            '<p><strong>Решение:</strong> Фильтр <code>tls.handshake.type == 1</code>, затем раскройте «Transport Layer Security → TLSv1.3 Record Layer: Handshake Protocol: Client Hello → Extension: server_name».</p>',
-            '<p><strong>Задание 2:</strong> Извлеките сертификат сервера из рукопожатия и проверьте его срок действия.</p>',
-            '<p><strong>Решение:</strong> Найдите пакет с <code>tls.handshake.type == 11</code>, экспортируйте сертификат через контекстное меню «Export Packet Bytes», сохраните в файл с расширением <code>.der</code>. Откройте его: <code>openssl x509 -in cert.der -inform der -text -noout</code>.</p>',
+            '<table class="ws-table">',
+            '<tr><th>#</th><th>Задание</th><th>Решение</th></tr>',
+            '<tr><td>1</td><td>Найдите Client Hello и определите SNI (имя сервера)</td><td>Фильтр <code>tls.handshake.type == 1</code> → Client Hello → Extension: server_name</td></tr>',
+            '<tr><td>2</td><td>Извлеките сертификат сервера и проверьте срок действия</td><td>Найти пакет <code>tls.handshake.type == 11</code>, Export Packet Bytes → <code>.der</code>, открыть: <code>openssl x509 -in cert.der -inform der -text -noout</code></td></tr>',
+            '</table>',
 
             // ============================================================
             // 7. ТИПИЧНЫЕ АТАКИ И ИХ ОБНАРУЖЕНИЕ
@@ -422,51 +495,46 @@ KERNEL_DATA.addNote({
             ),
 
             '<h4>8.5 Практикум по tshark</h4>',
-            '<p><strong>Задание 1:</strong> Напишите однострочник для извлечения всех уникальных DNS-имён из PCAP-файла.</p>',
-            '<p><strong>Решение:</strong> <code>tshark -r file.pcap -Y "dns.qry.type == 1" -T fields -e dns.qry.name | sort -u</code></p>',
-            '<p><strong>Задание 2:</strong> Подсчитайте количество HTTP POST-запросов в захвате.</p>',
-            '<p><strong>Решение:</strong> <code>tshark -r file.pcap -Y "http.request.method == POST" | wc -l</code></p>',
-            '<p><strong>Задание 3:</strong> Выведите все пары IP-адресов, которые общались по TCP, с указанием порта назначения. Отсортируйте по количеству пакетов.</p>',
-            '<p><strong>Решение:</strong> <code>tshark -r file.pcap -T fields -e ip.src -e ip.dst -e tcp.dstport | sort | uniq -c | sort -rn</code></p>',
+            '<table class="ws-table">',
+            '<tr><th>#</th><th>Задание</th><th>Решение</th></tr>',
+            '<tr><td>1</td><td>Извлечь все уникальные DNS-имена из PCAP</td><td><code>tshark -r file.pcap -Y "dns.qry.type == 1" -T fields -e dns.qry.name | sort -u</code></td></tr>',
+            '<tr><td>2</td><td>Подсчитать количество HTTP POST-запросов</td><td><code>tshark -r file.pcap -Y "http.request.method == POST" | wc -l</code></td></tr>',
+            '<tr><td>3</td><td>Вывести пары IP по TCP с портом назначения, сортировка по количеству пакетов</td><td><code>tshark -r file.pcap -T fields -e ip.src -e ip.dst -e tcp.dstport | sort | uniq -c | sort -rn</code></td></tr>',
+            '</table>',
 
             // ============================================================
             // 9. СТАТИСТИКА И ГРАФИКИ
             // ============================================================
             '<h3>9. Инструменты статистики Wireshark</h3>',
-
-            '<h4>9.1 Protocol Hierarchy (Иерархия протоколов)</h4>',
-            '<p>Statistics → Protocol Hierarchy. Показывает распределение трафика по протоколам в процентах. Быстрый способ увидеть: что вообще происходит в сети, нет ли аномальных протоколов (например, много ICMP при отсутствии ping\'ов — признак туннеля).</p>',
-
-            '<h4>9.2 Conversations (Диалоги)</h4>',
-            '<p>Statistics → Conversations. Группирует трафик по парам общающихся хостов. Вкладки Ethernet, IP, TCP/UDP. Позволяет найти: кто с кем общается, кто создаёт больше всего трафика, подозрительные соединения на редкие порты.</p>',
-
-            '<h4>9.3 Endpoints (Конечные точки)</h4>',
-            '<p>Statistics → Endpoints. Статистика по каждому хосту: сколько пакетов/байт отправлено и получено. Позволяет быстро найти самых активных участников сети.</p>',
-
-            '<h4>9.4 IO Graph (График ввода-вывода)</h4>',
-            '<p>Statistics → IO Graph. Строит график скорости трафика во времени. Можно добавить несколько линий с разными фильтрами (например, общий трафик + HTTP + DNS). Позволяет визуально определить пики нагрузки, DDoS-атаки, периодическую активность (C2 beaconing).</p>',
-
-            '<h4>9.5 Expert Information</h4>',
-            '<p>Analyze → Expert Information. Автоматический анализ захвата: предупреждения, ошибки, замечания по каждому протоколу. Перепроверка пакетов (retransmissions, duplicate ACKs), сбросы соединений, неправильные контрольные суммы.</p>',
+            '<table class="ws-table">',
+            '<tr><th>Инструмент</th><th>Путь</th><th>Что показывает</th></tr>',
+            '<tr><td><strong>Protocol Hierarchy</strong></td><td>Statistics → Protocol Hierarchy</td><td>Распределение трафика по протоколам в %</td></tr>',
+            '<tr><td><strong>Conversations</strong></td><td>Statistics → Conversations</td><td>Пары общающихся хостов (Ethernet, IP, TCP/UDP)</td></tr>',
+            '<tr><td><strong>Endpoints</strong></td><td>Statistics → Endpoints</td><td>Статистика по каждому хосту: пакеты/байты</td></tr>',
+            '<tr><td><strong>IO Graph</strong></td><td>Statistics → IO Graph</td><td>График скорости трафика во времени</td></tr>',
+            '<tr><td><strong>Expert Information</strong></td><td>Analyze → Expert Information</td><td>Ошибки, предупреждения, замечания</td></tr>',
+            '</table>',
 
             '<h4>9.6 Практикум по статистике</h4>',
-            '<p><strong>Задание 1:</strong> Откройте любой PCAP-файл. Используя IO Graph, постройте график общего трафика и добавьте линию для HTTP (порт 80). Видите ли вы пики? В какое время была максимальная нагрузка?</p>',
-            '<p><strong>Решение:</strong> В IO Graph добавьте фильтр <code>tcp.port == 80</code> и выберите цвет для новой линии.</p>',
-            '<p><strong>Задание 2:</strong> Используя Expert Information, найдите все повторные передачи (retransmissions) в захвате. О чём это говорит?</p>',
-            '<p><strong>Решение:</strong> Analyze → Expert Information, вкладка Notes/Warnings. Повторные передачи указывают на потерю пакетов в сети.</p>',
-            '<p><strong>Задание 3:</strong> Сравните два захвата: нормальный трафик и трафик во время сканирования портов. Какие отличия вы видите в Conversations?</p>',
-            '<p><strong>Ожидаемый результат:</strong> При сканировании будет много коротких попыток соединений на разные порты от одного IP-адреса, большинство с флагом RST в ответ.</p>',
+            '<table class="ws-table">',
+            '<tr><th>#</th><th>Задание</th><th>Решение</th></tr>',
+            '<tr><td>1</td><td>Построить график HTTP-трафика в IO Graph</td><td>IO Graph → фильтр <code>tcp.port == 80</code></td></tr>',
+            '<tr><td>2</td><td>Найти все повторные передачи (retransmissions)</td><td>Analyze → Expert Information → вкладка Notes/Warnings</td></tr>',
+            '<tr><td>3</td><td>Сравнить нормальный трафик и трафик сканирования в Conversations</td><td>При сканировании — много коротких попыток на разные порты от одного IP</td></tr>',
+            '</table>',
 
             // ============================================================
             // 10. ЦВЕТОВЫЕ ПРАВИЛА
             // ============================================================
             '<h3>10. Цветовые правила (Coloring Rules)</h3>',
-            '<p>Wireshark использует цвета для визуального выделения пакетов. Правила настраиваются через View → Coloring Rules. Стандартные правила: TCP RST — красный, HTTP — зелёный, ошибки ICMP — жёлтый.</p>',
-            '<p><strong>Полезные пользовательские правила:</strong></p>',
-            App.createCodeBlock(
-                '# Подозрительные сканирования (SYN без ACK) — жёлтый\ntcp.flags.syn == 1 && tcp.flags.ack == 0\n\n# TCP RST — красный (уже есть по умолчанию)\ntcp.flags.reset == 1\n\n# DNS-ошибки — розовый\ndns.flags.rcode != 0\n\n# HTTP-ошибки (4xx, 5xx) — красный\nhttp.response.code >= 400',
-                'bash'
-            ),
+            '<p>Wireshark использует цвета для визуального выделения пакетов. Правила настраиваются через View → Coloring Rules.</p>',
+            '<table class="ws-table">',
+            '<tr><th>Фильтр</th><th>Цвет</th><th>Назначение</th></tr>',
+            '<tr><td><code>tcp.flags.syn == 1 && tcp.flags.ack == 0</code></td><td>🟡 Жёлтый</td><td>Подозрительные сканирования</td></tr>',
+            '<tr><td><code>tcp.flags.reset == 1</code></td><td>🔴 Красный</td><td>Сброс соединения (по умолчанию)</td></tr>',
+            '<tr><td><code>dns.flags.rcode != 0</code></td><td>🩷 Розовый</td><td>DNS-ошибки</td></tr>',
+            '<tr><td><code>http.response.code >= 400</code></td><td>🔴 Красный</td><td>HTTP-ошибки (4xx, 5xx)</td></tr>',
+            '</table>',
             '<p><strong>Совет:</strong> создайте отдельный цветовой профиль для форензики, чтобы быстро выделять аномалии. Экспортируйте его через View → Coloring Rules → Import/Export для переноса между системами.</p>',
 
             // ============================================================
@@ -481,17 +549,18 @@ KERNEL_DATA.addNote({
             // 12. ПРАКТИЧЕСКИЙ СЦЕНАРИЙ: АНАЛИЗ ЗАХВАТА
             // ============================================================
             '<h3>12. Практический сценарий анализа PCAP</h3>',
-            '<p><strong>Задача:</strong> вам прислали файл suspicious.pcap. Нужно понять, что произошло. Алгоритм действий:</p>',
-            '<ol>',
-            '<li><strong>Protocol Hierarchy:</strong> посмотрите, какие протоколы есть в захвате. Если видите необычные (много ICMP, странные порты) — углубитесь туда.</li>',
-            '<li><strong>Conversations:</strong> определите, кто с кем общался. Выделите внешние IP-адреса, на которые были соединения.</li>',
-            '<li><strong>Проверьте TCP-рукопожатия:</strong> фильтр <code>tcp.flags.syn == 1 and tcp.flags.ack == 0</code>. Это покажет все попытки установки соединений.</li>',
-            '<li><strong>Найдите HTTP/DNS-запросы:</strong> возможно, были обращения к подозрительным доменам.</li>',
-            '<li><strong>Проверьте TLS-рукопожатия:</strong> посмотрите SNI (<code>tls.handshake.extensions_server_name</code>) — к каким серверам обращался клиент.</li>',
-            '<li><strong>Экспортируйте объекты:</strong> File → Export Objects → HTTP. Возможно, были скачаны вредоносные файлы.</li>',
-            '<li><strong>Проверьте Expert Information:</strong> есть ли аномалии на уровне протоколов.</li>',
-            '<li><strong>Follow TCP Stream:</strong> для подозрительных соединений откройте полный диалог (правая кнопка → Follow → TCP Stream).</li>',
-            '</ol>',
+            '<p><strong>Задача:</strong> вам прислали файл suspicious.pcap. Нужно понять, что произошло.</p>',
+            '<table class="ws-table">',
+            '<tr><th>Шаг</th><th>Действие</th><th>Инструмент / Фильтр</th></tr>',
+            '<tr><td>1</td><td>Проверить распределение протоколов</td><td>Statistics → Protocol Hierarchy</td></tr>',
+            '<tr><td>2</td><td>Определить, кто с кем общался</td><td>Statistics → Conversations</td></tr>',
+            '<tr><td>3</td><td>Найти все попытки установки соединений</td><td><code>tcp.flags.syn == 1 and tcp.flags.ack == 0</code></td></tr>',
+            '<tr><td>4</td><td>Проверить HTTP/DNS-запросы</td><td><code>http.request</code> / <code>dns</code></td></tr>',
+            '<tr><td>5</td><td>Проверить TLS-рукопожатия (SNI)</td><td><code>tls.handshake.extensions_server_name</code></td></tr>',
+            '<tr><td>6</td><td>Экспортировать объекты HTTP</td><td>File → Export Objects → HTTP</td></tr>',
+            '<tr><td>7</td><td>Проверить аномалии протоколов</td><td>Analyze → Expert Information</td></tr>',
+            '<tr><td>8</td><td>Открыть полный диалог подозрительного соединения</td><td>ПКМ → Follow → TCP Stream</td></tr>',
+            '</table>',
 
             // ============================================================
             // 13. ПОЛЕЗНЫЕ КОМАНДЫ TSHARK И BPF (ШПАРГАЛКА)

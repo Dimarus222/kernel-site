@@ -12,6 +12,16 @@ var App = (function() {
         document.querySelectorAll('.nav-btn').forEach(function(btn) {
             btn.classList.toggle('active', btn.getAttribute('data-section') === sectionName);
         });
+        // Закрываем бургер-меню при переходе
+        var nav = document.querySelector('.nav');
+        var overlay = document.getElementById('navOverlay');
+        var btn = document.getElementById('burgerBtn');
+        if (nav.classList.contains('open')) {
+            nav.classList.remove('open');
+            overlay.classList.remove('open');
+            btn.classList.remove('open');
+            btn.textContent = '☰';
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -52,6 +62,16 @@ var App = (function() {
         }
     }
 
+    function toggleMenu() {
+        var nav = document.querySelector('.nav');
+        var overlay = document.getElementById('navOverlay');
+        var btn = document.getElementById('burgerBtn');
+        nav.classList.toggle('open');
+        overlay.classList.toggle('open');
+        btn.classList.toggle('open');
+        btn.textContent = nav.classList.contains('open') ? '✕' : '☰';
+    }
+
     function renderCards(containerId, items) {
         var container = document.getElementById(containerId);
         if (!container || !items) return;
@@ -80,21 +100,13 @@ var App = (function() {
     function createCodeBlock(code, language) {
         return '<div class="code-block"><pre><code class="language-' + (language || 'plaintext') + '">' + escapeHtml(code) + '</code></pre></div>';
     }
-function toggleMenu() {
-    var nav = document.querySelector('.nav');
-    var overlay = document.getElementById('navOverlay');
-    var btn = document.getElementById('burgerBtn');
-    nav.classList.toggle('open');
-    overlay.classList.toggle('open');
-    btn.classList.toggle('open');
-    btn.textContent = nav.classList.contains('open') ? '✕' : '☰';
-}
+
     return {
-        toggleMenu: toggleMenu,
         showSection: showSection,
         openNote: openNote,
         closeNote: closeNote,
         toggleTheme: toggleTheme,
+        toggleMenu: toggleMenu,
         init: init,
         escapeHtml: escapeHtml,
         createCodeBlock: createCodeBlock

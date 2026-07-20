@@ -1,0 +1,55 @@
+/* ============================================================
+   KERNEL — MATRIX (Киберпанк)
+   ============================================================ */
+
+:root {
+    --bg: #0a0e0a;
+    --bg-secondary: #0f140f;
+    --bg-card: #111811;
+    --text: #b8e6b8;
+    --text-secondary: #6a9a6a;
+    --border: #1a3a1a;
+    --accent: #00ff41;
+    --accent-dim: #008a22;
+    --code-bg: #0a0e0a;
+    --header-bg: rgba(10, 14, 10, 0.92);
+    --tag-bg: #1a3a1a;
+    --tag-text: #6a9a6a;
+    --shadow: 0 1px 3px rgba(0,0,0,0.5);
+    --gradient: linear-gradient(135deg, #00ff41 0%, #008a22 100%);
+    --gradient-shadow: 0 4px 20px rgba(0, 255, 65, 0.25);
+    --scrollbar-thumb: #1a3a1a;
+    --scrollbar-track: #0a0e0a;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Inter', monospace;
+}
+
+/* MATRIX ЭФФЕКТ НА ФОНЕ */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: 
+        repeating-linear-gradient(0deg, 
+            rgba(0, 255, 65, 0.015) 0px, 
+            rgba(0, 255, 65, 0.015) 2px,
+            transparent 2px,
+            transparent 6px
+        );
+    pointer-events: none;
+}
+
+.code-block { border-color: #1a3a1a; }
+.code-block pre { color: #b8e6b8; }
+
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }
+::-webkit-scrollbar-thumb:hover { background: #2a5a2a; }

@@ -168,28 +168,31 @@ body {
     z-index: 99;
 }
 
-/* ===== ВЫБОР ТЕМ ===== */
+/* ============================================================
+   ===== ВЫБОР ТЕМ — ВСЕГДА СТАТИЧНЫЙ ФОН =====
+   ============================================================ */
 .theme-picker-overlay {
     display: none;
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.7);
     z-index: 200;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(6px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 .theme-picker-overlay.open { display: flex; }
 
 .theme-picker-panel {
-    background: var(--bg);
-    border: 1px solid var(--border);
+    background: #1a1a2e;
+    border: 1px solid #2d2d44;
     border-radius: 16px;
     max-width: 560px;
     width: 95%;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
     animation: slideUp 0.3s ease;
 }
 
@@ -203,22 +206,22 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 18px 24px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid #2d2d44;
     font-weight: 700;
     font-size: 16px;
-    color: var(--text);
+    color: #e8e4dc;
 }
 .close-picker {
     background: none;
     border: none;
-    color: var(--text-secondary);
+    color: #9c9588;
     font-size: 20px;
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 6px;
     transition: all 0.2s ease;
 }
-.close-picker:hover { background: var(--bg-card); color: var(--text); }
+.close-picker:hover { background: #2d2d44; color: #e8e4dc; }
 
 .theme-picker-body {
     padding: 20px 24px;
@@ -233,18 +236,18 @@ body {
     align-items: center;
     gap: 6px;
     padding: 14px 12px 16px;
-    border: 2px solid var(--border);
+    border: 2px solid #2d2d44;
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.25s ease;
-    background: var(--bg-card);
+    background: #141425;
     text-align: center;
 }
-.theme-option:hover { border-color: var(--accent); transform: translateY(-2px); }
-.theme-option.active { border-color: var(--accent); background: var(--bg); }
+.theme-option:hover { border-color: #6b6b9e; transform: translateY(-2px); }
+.theme-option.active { border-color: #8b7bf7; background: #1e1e3a; }
 
-.theme-name { font-weight: 600; font-size: 14px; color: var(--text); margin-top: 4px; }
-.theme-desc { font-size: 11px; color: var(--text-secondary); }
+.theme-name { font-weight: 600; font-size: 14px; color: #e8e4dc; margin-top: 4px; }
+.theme-desc { font-size: 11px; color: #9c9588; }
 
 
 /* ============================================================
@@ -862,4 +865,4 @@ body.nature-theme .nav-btn.active { border-color: #4ade80; }
 @media (min-width: 1800px) {
     .grid { grid-template-columns: repeat(4, 1fr); }
     .note-content { max-width: 900px; font-size: 17px; }
-                             }
+                     }

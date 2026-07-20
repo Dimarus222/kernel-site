@@ -1,0 +1,32 @@
+/* ============================================================
+   KERNEL — FOREST (Лесной)
+   ============================================================ */
+
+:root {
+    --bg: #0f1a0f;
+    --bg-secondary: #142014;
+    --bg-card: #1a2a1a;
+    --text: #dcfce7;
+    --text-secondary: #86efac;
+    --border: #1a3a1a;
+    --accent: #4ade80;
+    --accent-dim: #22a65e;
+    --code-bg: #0a120a;
+    --header-bg: rgba(15, 26, 15, 0.92);
+    --tag-bg: #1a3a1a;
+    --tag-text: #86efac;
+    --shadow: 0 1px 3px rgba(0,0,0,0.4);
+    --gradient: linear-gradient(135deg, #4ade80 0%, #22a65e 100%);
+    --gradient-shadow: 0 4px 20px rgba(74, 222, 128, 0.25);
+    --scrollbar-thumb: #1a3a1a;
+    --scrollbar-track: #0f1a0f;
+}
+
+body { background: var(--bg); color: var(--text); }
+
+.code-block { border-color: #1a3a1a; }
+.code-block pre { color: #dcfce7; }
+
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }
+::-webkit-scrollbar-thumb:hover { background: #2a5a2a; }

@@ -583,40 +583,36 @@ body {
    текст всегда var(--text)/var(--text-secondary), фон только двух видов —
    шапка и тело, оба привязаны к переменным темы.
 
-   ВАЖНО ПРО СКРОЛЛ: раньше горизонтальный скролл работал, только если
-   таблицу вручную оборачивали в <div class="table-wrap">. Если в каком-то
-   конспекте эта обёртка отсутствует (другой источник разметки, ручной
-   HTML и т.п.) — overflow-x было не на чем сработать, и широкая таблица
-   раздвигала .note-content, а за ним и весь <body>, из-за чего "уезжала"
-   вбок вся страница. Теперь сама <table> скроллится по горизонтали САМА
-   ПО СЕБЕ (display:block + overflow-x:auto — браузер всё равно строит
-   анонимную табличную сетку внутри для thead/tbody/tr/td, так что колонки
-   не разъезжаются), независимо от того, обёрнута она в .table-wrap или нет. */
-.note-content table {
-    display: block;
+   ВАЖНО ПРО СКРОЛЛ: горизонтальный скролл обеспечивает ТОЛЬКО обёртка
+   .table-wrap — она гарантированно добавляется вокруг каждой таблицы
+   через JS в app.js (см. wrapWideTables), независимо от классов и
+   инлайн-стилей конкретного конспекта (ws-table, ws-bit-table и т.п.).
+   Раньше overflow-x:auto вешался на саму <table> (через display:block) —
+   это создавало ДВА вложенных скролл-контейнера одновременно (у таблицы
+   и у обёртки), браузер путался, какой из них крутить, и вместо таблицы
+   начинала скроллиться вся страница вбок. Теперь скролл-контейнер один:
+   таблица держит нормальный table-layout и просто становится шире
+   обёртки, если контенту тесно — а сама обёртка не даёт этому вылезти
+   за пределы страницы. */
+.note-content .table-wrap {
     width: 100%;
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    margin: 20px 0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+.note-content table {
+    width: 100%;
     border-collapse: collapse;
     font-size: 13.5px;
     line-height: 1.6;
     background: var(--bg-card);
     color: var(--text);
     font-family: var(--font-content, 'Inter', sans-serif);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    margin: 20px 0;
 }
-/* Если разметка всё же использует обёртку — не дублируем рамку дважды */
-.note-content .table-wrap {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    margin: 20px 0;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-}
+/* Таблица внутри обёртки не дублирует рамку/отступ обёртки */
 .note-content .table-wrap table {
     border: none;
     border-radius: 0;
@@ -1341,4 +1337,4 @@ body.nature-theme .materials-counter { border-radius: 16px 4px 16px 4px; }
 @media (min-width: 1800px) {
     .grid { grid-template-columns: repeat(4, 1fr); }
     .note-content { max-width: 900px; font-size: 17px; }
-                                   }
+   }

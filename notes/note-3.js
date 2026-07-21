@@ -215,7 +215,7 @@ KERNEL_DATA.addNote({
 
             '<h4>9.2 Парсинг XML-вывода</h4>',
             App.createCodeBlock(
-                '# Извлечь все открытые порты из XML\npython3 -c "\nimport xml.etree.ElementTree as ET\ntree = ET.parse('scan.xml')\nroot = tree.getroot()\nfor host in root.findall('host'):\n    ip = host.find('address').get('addr')\n    for port in host.findall('.//port'):\n        if port.find('state').get('state') == 'open':\n            print(f'{ip}:{port.get(\"portid\")}/tcp')\n"\n\n# С помощью ndiff (сравнение двух сканов)\nndiff scan1.xml scan2.xml',
+                '# Извлечь все открытые порты из XML\npython3 -c "\nimport xml.etree.ElementTree as ET\ntree = ET.parse(\'scan.xml\')\nroot = tree.getroot()\nfor host in root.findall(\'host\'):\n    ip = host.find(\'address\').get(\'addr\')\n    for port in host.findall(\'.//port\'):\n        if port.find(\'state\').get(\'state\') == \'open\':\n            print(f\'{ip}:{port.get("portid")}/tcp\')\n"\n\n# С помощью ndiff (сравнение двух сканов)\nndiff scan1.xml scan2.xml',
                 'bash'
             ),
 
